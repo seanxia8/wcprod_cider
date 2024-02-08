@@ -17,6 +17,23 @@ Once `git clone` this repository, go inside and:
 ```
 pip install .
 ```
+## Interacting with the database
+The primary access point is the `wcprod_db` python class. 
+All functions of this class are available through `wcprod` command-line interface (CLI).
+
+### Check (list) all available functions
+```
+wcprod -h
+```
+### Get help on a specific function
+```
+wcprod test_db get_random_config -h
+```
+
+## Generating a new project
+You can generate a new project using `wcprod` CLI.
+
+However, it might be useful to learn how a project can be generated from a configuration file, what information is stored, and how to retrieve.
 
 Tutorial materials are gathered in a publicly accessible folder in [this google drive link](https://drive.google.com/drive/folders/1IjRUMMVW7aiGWGcZFGRb9nT8dCRVYolE?usp=share_link).
 
