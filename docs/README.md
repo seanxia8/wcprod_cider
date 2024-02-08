@@ -1,9 +1,9 @@
 # Documentation
 
-[![Documentation Status](https://readthedocs.org/projects/photonlib/badge/?version=latest)](https://photonlib.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/wcprod/badge/?version=latest)](https://wcprod.readthedocs.io/en/latest/?badge=latest)
 
 
-We use Sphinx to generate the documentation, and Readthedocs.io to host it at https://photonlib.readthedocs.io/en/latest/.
+We use Sphinx to generate the documentation, and Readthedocs.io to host it at https://wcprod.readthedocs.io/en/latest/.
 In theory the online documentation gets built and updated automatically every time the source branch changes.
 
 ## Writing docstrings
