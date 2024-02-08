@@ -12,7 +12,7 @@ setup(
     author=['Kazuhiro Terao'],
     description='Database for the CIDeR simulation production for Water Cherenkov detectors',
     license='MIT',
-    scripts=[],
+    scripts=['cli/wcprod'],
     packages=['wcprod'],
     install_requires=[
         'numpy',

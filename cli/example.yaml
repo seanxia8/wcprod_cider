@@ -1,0 +1,8 @@
+project: production_gap30cm
+rmin: 0
+rmax: 200
+zmin: 0
+zmax: 400
+gap_space: 30
+gap_angle: 10
+num_photons: 100000000

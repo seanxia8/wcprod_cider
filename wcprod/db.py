@@ -82,7 +82,6 @@ class wcprod_db:
             cur.execute(cmd)
             data_map = np.array(cur.fetchall())
             if not (len(data_map[:,0]) == len(np.unique(data_map[:,0])) == (data_map[:,0].max()+1)):
-                print(len(data_map[:,0]),len(np.unique(data_map[:,0])),(data_map[:,0].max()+1))
                 raise ProjectIntegrityError(f"Duplicate or lacking table_id in map_{project} table")
             if not len(data_map[:,0]) == num_tables:
                 raise ProjectIntegrityError(f"The number of table {num_tables} is inconsistent with the number of unique table_id values {len(data_map[:,0])}")
@@ -321,7 +320,6 @@ class wcprod_db:
                 cmd += f" ORDER BY photon_ctr ASC"
             if size>0:
                 cmd += f" LIMIT {size}"
-            print(cmd)
             cur.execute(cmd)
             res = cur.fetchall()
             
@@ -399,10 +397,8 @@ class wcprod_db:
             table_count = self.table_count(project)
             for table_index in range(table_count):
                 cmd = f"SELECT file_path FROM file_{project}{table_index} WHERE file_path='{file_path}'"
-                print(cmd)
                 cur.execute(cmd)
                 res = cur.fetchall()
-                print(res)
                 if len(res)>0:
                     return True
             return False

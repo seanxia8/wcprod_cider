@@ -1,4 +1,7 @@
 _skbuild
+*.db
+*.txt
+*.npy
 *egg-info
 *~
 *.ipynb_checkpoints

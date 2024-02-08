@@ -1,0 +1,90 @@
+#!/usr/bin/python
+
+from wcprod import wcprod_db
+import sys
+
+ERROR_INVALID_ARGC=1
+HELP_LIST_ACTIONS=2
+ERROR_INVALID_ARGN=3
+HELP_ACTION=4
+ERROR_DB_CONNECTION=5
+
+ftype = type(wcprod_db.__init__)
+actions = []
+for attr in wcprod_db.__dict__.keys():
+    if attr.startswith('_'):
+        continue
+    if not type(getattr(wcprod_db,attr)) == ftype:
+        continue
+    actions.append(attr)
+
+if len(sys.argv) < 3:
+
+    if '-h' in sys.argv:
+        msg='''
+Usage: wcprod DBNAME ACTION [ARGUMENTS]
+
+Available ACTIONs:\n\n'''
+        
+        for a in actions:
+            msg += f'    {a}\n'
+        print(msg)
+        sys.exit(HELP_LIST_ACTIONS)
+
+    msg='''
+    ERROR: too few arguments!
+
+    Usage: wcprod DBNAME ACTION [ARGUMENTS]
+
+        DBNAME ... the name of the database (sqlite database file path)
+        
+        ACTION ... the name of wcprod_db attribute function (see https://github.com/CIDeR-ML/wcprod/blob/develop/wcprod/db.py)
+        
+        ARGUMENTS ... the function arguments (ordered)
+
+    Add -h after ACTION to see the help of the function.
+
+    Add -h without specifying ACTION (e.g. "wcprod -h") to see the list of available functions = ACTIONS
+
+    '''
+    sys.stderr.write('Too few arguments (minimum 3 required)')
+    sys.stderr.write('Usage: wcprod DBNAME ACTION [ARGUMENTS]')
+    sys.exit(ERROR_INVALID_ARGC)
+
+fname = sys.argv[2]
+if not fname in actions:
+    msg  = f'ERROR: {fname} is not a valid ACTION.\n'
+    msg += 'See the valid ACTION list below.\n\n'
+    for a in actions:
+        msg += f'    {a}\n'
+    sys.stderr.write(msg)
+    sys.exit(ERROR_INVALID_ARGN)
+
+if '-h' in sys.argv:
+    help(getattr(wcprod_db,fname))
+    sys.exit(HELP_ACTION)
+
+try:
+    db = wcprod_db(sys.argv[1])
+except sqlite3.OperationalError:
+    sys.stderr.write(f'Cannot open a database: {sys.argv[1]}\n')
+    sys.exit(ERROR_DB_CONNECTION)
+
+
+if fname == 'register_project':
+    print(f'Generating wcprod_project from the yaml file: {sys.argv[3]}')
+    from wcprod import wcprod_project
+    sys.argv[3] = wcprod_project(sys.argv[3])
+
+res=getattr(db,fname)(*sys.argv[3:])
+if type(res) == list:
+    print()
+    for k in res:
+        print(k)
+elif type(res) == dict:
+    print()
+    for key,val in res.items():
+        print(key,':',val)
+else:
+    print(res)
+sys.exit(0)
