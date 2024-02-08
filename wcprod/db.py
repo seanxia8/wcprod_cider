@@ -175,18 +175,25 @@ class wcprod_db:
             Instance filled with information from the database
         """  
         with closing(self._conn.cursor()) as cur:
+
+            p=wcprod_project()
+
             cur.execute(f"SELECT zmin,zmax,rmin,rmax,gap_space,gap_angle,num_photons FROM project WHERE name='{project}' LIMIT 1")
             res=cur.fetchall()
             if len(res)<1:
                 return None
             res=res[0]
-            res=dict(project=project,
-                     zmin=res[0],zmax=res[1],
-                     rmin=res[2],rmax=res[3],
-                     gap_space=res[4],
-                     gap_angle=res[5],
-                     num_photons=res[6])
-            return wcprod_project(res)
+            p._project = project
+            p._zmin, p._zmax, p._rmin, p._rmax = res[0:4]
+            p._gap_space, p._gap_angle, p._num_photons = res[4:]
+
+            p._positions  = self.list_positions(project)[:,0:3]
+            p._directions = self.list_directions(project)[:,0:2]
+
+            from wcprod.utils import coordinates
+            p._configs = coordinates(p.positions,p.directions)
+
+            return p
     
 
     def get_config(self,project:str,config_id:int):

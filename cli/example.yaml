@@ -1,4 +1,4 @@
-project: production_gap30cm
+project: example_project
 rmin: 0
 rmax: 200
 zmin: 0
