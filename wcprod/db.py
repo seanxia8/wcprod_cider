@@ -3,6 +3,7 @@ import pandas as pd
 from contextlib import closing
 import numpy as np
 from tqdm import tqdm
+import datetime
 from .project import wcprod_project
 
 class TableNotFoundError(Exception):
@@ -306,7 +307,7 @@ class wcprod_db:
         Returns
         -------
         dict
-            Contains config ID, (x,y,z,theta,phi), and the number of photons simulated so far
+            Contains config/table IDs, (x,y,z,theta,phi), and the number of files produced so far
         """
         max_photons = self.get_project(project).num_photons
         with closing(self._conn.cursor()) as cur:
@@ -322,7 +323,7 @@ class wcprod_db:
                     return None
                 table_id = res[0][0]
             
-            cmd = f"SELECT config_id,x,y,z,theta,phi,photon_ctr FROM cfg_{project}{table_id} WHERE photon_ctr < {max_photons}"
+            cmd = f"SELECT config_id,x,y,z,theta,phi,file_ctr FROM cfg_{project}{table_id} WHERE photon_ctr < {max_photons}"
             if prioritize:
                 cmd += f" ORDER BY photon_ctr ASC"
             if size>0:
@@ -334,7 +335,10 @@ class wcprod_db:
             np.random.seed(seed)
             res = res[int(np.random.random()*len(res))]
         
-            return dict(config_id=res[0],x=res[1],y=res[2],z=res[3],theta=res[4],phi=res[5],photon_ctr=res[6])
+            return dict(config_id=res[0],table_id=table_id,
+                x=res[1],y=res[2],z=res[3],theta=res[4],phi=res[5],
+                file_ctr=res[6],
+                )
         
 
     def list_files(self,project:str,config_id:int=None,table_id:int=None):
@@ -579,11 +583,13 @@ class wcprod_db:
                                      photon_ctr=np.zeros(shape=(end-start),dtype=int),
                                     )
                                )
-                      
                 df.to_sql(cfg_tablename+str(table_index),self._conn, index=False)
+                cur.execute(f"ALTER TABLE {cfg_tablename}{table_index} ADD Timestamp DATETIME")
+                current_timestamp = datetime.datetime.now().isoformat(" ",timespec='seconds')
+                cur.execute(f"UPDATE {cfg_tablename}{table_index} SET Timestamp = '{current_timestamp}'")
 
                 # Create a file table
-                cur.execute(f"CREATE TABLE {file_tablename}{table_index} (file_id INTEGER PRIMARY KEY AUTOINCREMENT, config_id INT, file_path STRING, photon_ctr INT)")
+                cur.execute(f"CREATE TABLE {file_tablename}{table_index} (file_id INTEGER PRIMARY KEY AUTOINCREMENT, config_id INT, file_path STRING, photon_ctr INT, Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)")
                 
                 # Register the table ID 
                 cmd  = f"INSERT INTO map_{project} (table_id, config_range_min, config_range_max, photon_ctr, target_ctr) "
@@ -622,6 +628,7 @@ class wcprod_db:
             cur.execute(cmd)
             cmd = f"DELETE FROM project WHERE name='{project}'"
             cur.execute(cmd)
+        self._conn.commit()
         
     def register_file(self,project:str,config_id:int,file_path:str,num_photons:int):    
         """Register a new file
@@ -666,8 +673,11 @@ class wcprod_db:
             table_id = self.table_id(project,config_id)
             cmd = f"INSERT INTO file_{project}{table_id} (config_id,file_path,photon_ctr) VALUES ({config_id},'{file_path}',{num_photons});"
             cur.execute(cmd)
-            cmd = f"UPDATE cfg_{project}{table_id} SET file_ctr = file_ctr+1, photon_ctr = photon_ctr+{num_photons} WHERE config_id = {config_id};"
+
+            current_timestamp = datetime.datetime.now().isoformat(" ",timespec='seconds')
+            cmd = f"UPDATE cfg_{project}{table_id} SET file_ctr = file_ctr+1, photon_ctr = photon_ctr+{num_photons}, Timestamp = '{current_timestamp}' WHERE config_id = {config_id};"
             cur.execute(cmd)
+            
             cmd = f"UPDATE map_{project} SET photon_ctr = photon_ctr + {num_photons} WHERE table_id = {table_id}"
             cur.execute(cmd)
             # Check if it's registered correctly

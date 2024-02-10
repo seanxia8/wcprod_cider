@@ -1,0 +1,112 @@
+#!/usr/bin/python3
+import sys,os
+import yaml
+
+TEMPLATE='''
+#!/bin/bash
+#SBATCH --job-name=dntp
+#SBATCH --nodes=1
+#SBATCH --partition=%s
+#SBATCH --account=%s
+#SBATCH --output=%s/slurm-%%A-%%a.out
+#SBATCH --error=%s/slurm-%%A-%%a.out
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=%d
+#SBATCH --mem-per-cpu=%dG
+#SBATCH --time=%s                                                                                                
+#SBATCH --array=1-%d%%%d
+%s
+
+# Set-up a work dir
+export WORKDIR=${LSCRATCH}/workdir_${SLURM_JOB_ID}
+mkdir -p $WORKDIR
+cd $WORKDIR
+
+# Generate a configuration file
+echo "
+DBFile:   /sdf/data/neutrino/wcprod/${1}/config.db
+Project:  ${1}
+NPhotons: ${2}
+Storage:  %s/${1}
+WCSIM_BUILDDIR: ${WCSIMDIR}/build
+" >> job.yaml
+
+# Prepare for WCSim job
+scp -r $WCSIMDIR/build/macros ./
+
+# Execute N times
+for (( i=1;i<=$3;i++ ))
+do
+ echo "Run $i"
+ echo `date`
+ job_shotgun.py job.yaml
+ echo "Finished!"
+ echo `date`
+done
+
+echo "Exiting"
+echo `date`
+'''
+
+def parse_config(cfg):
+    if not os.path.isfile(cfg):
+        print(f"Configuration yaml file '{cfg}' does not exist.")
+        sys.exit(1)
+
+    cfg = yaml.safe_load(open(cfg,'r').read())
+    keywords = ['STORAGE_ROOT',
+    'SLURM_LOG_DIR','SLURM_TIME','SLURM_MEM',
+    'SLURM_ACCOUNT','SLURM_PARTITION',
+    'SLURM_NCPU','SLURM_NJOBS_TOTAL','SLURM_NJOBS_CONCURRENT']
+
+    for key in keywords:
+        if not key in cfg.keys():
+            print('ERROR: config missing a keyword',key)
+            sys.exit(1)
+
+    return cfg
+
+
+def main():
+    if not len(sys.argv) == 2:
+        print('Usage: %s CONFIG' % sys.argv[0])
+        sys.exit(1)
+
+    cfg = parse_config(sys.argv[1])
+
+    EXTRA_FLAGS=''
+    if cfg.get('SLURM_PREEMPTABLE',False):
+        EXTRA_FLAGS += '#SBATCH --qos=preemptable\n'
+    if cfg.get('SLURM_NODELIST',False):
+        EXTRA_FLAGS += f'#SBATCH --nodelist="{cfg["SLURM_NODELIST"]}"\n'
+
+    script = TEMPLATE % (cfg['SLURM_PARTITION'],
+        cfg['SLURM_ACCOUNT'],
+        cfg['SLURM_LOG_DIR'],
+        cfg['SLURM_LOG_DIR'],
+        cfg['SLURM_NCPU'],
+        round(cfg['SLURM_MEM']/cfg['SLURM_NCPU']),
+        cfg['SLURM_TIME'],
+        cfg['SLURM_NJOBS_TOTAL'],
+        cfg['SLURM_NJOBS_CONCURRENT'],
+        EXTRA_FLAGS,
+        cfg['STORAGE_ROOT'],
+        )
+
+    with open('run_shotgun_slac.sh','w') as f:
+        f.write(script)
+        
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+
+
+
+
+
+
