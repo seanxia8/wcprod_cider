@@ -1,5 +1,4 @@
-from skbuild import setup
-import argparse
+from setuptools import setup
 
 import io,os,sys
 this_directory = os.path.abspath(os.path.dirname(__file__))
@@ -16,7 +15,6 @@ setup(
     packages=['wcprod'],
     install_requires=[
         'numpy',
-        'scikit-build',
         'plotly',
     ],
     long_description=long_description,

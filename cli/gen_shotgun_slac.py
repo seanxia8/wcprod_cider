@@ -2,8 +2,7 @@
 import sys,os
 import yaml
 
-TEMPLATE='''
-#!/bin/bash
+TEMPLATE_MAIN='''#!/bin/bash
 #SBATCH --job-name=dntp
 #SBATCH --nodes=1
 #SBATCH --partition=%s
@@ -27,19 +26,37 @@ echo "
 DBFile:   /sdf/data/neutrino/wcprod/${1}/config.db
 Project:  ${1}
 NPhotons: ${2}
+NEvents:  ${3}
 Storage:  %s/${1}
 WCSIM_BUILDDIR: ${WCSIMDIR}/build
+ROOT_SETUP: /src/root/install/bin/thisroot.sh
 " >> job.yaml
 
 # Prepare for WCSim job
 scp -r $WCSIMDIR/build/macros ./
 
+echo `printenv` 
+
 # Execute N times
 for (( i=1;i<=$3;i++ ))
 do
- echo "Run $i"
+
+ echo "Starting: run counter $i"
  echo `date`
- job_shotgun.py job.yaml
+ singularity exec -B /sdf %s python3 setup_shotgun.py job.yaml
+
+ echo "Running Geant4"
+ echo `date`
+ singularity run -B /sdf %s g4.mac 
+
+ echo "Running check"
+ echo `date`
+ singularity run -B /sdf %s check.sh
+
+ echo "Wrapping up"
+ echo `date`
+ singularity exec -B /sdf %s python3 job_shotgun.py wrapup.yaml
+
  echo "Finished!"
  echo `date`
 done
@@ -57,11 +74,17 @@ def parse_config(cfg):
     keywords = ['STORAGE_ROOT',
     'SLURM_LOG_DIR','SLURM_TIME','SLURM_MEM',
     'SLURM_ACCOUNT','SLURM_PARTITION',
-    'SLURM_NCPU','SLURM_NJOBS_TOTAL','SLURM_NJOBS_CONCURRENT']
+    'SLURM_NCPU','SLURM_NJOBS_TOTAL','SLURM_NJOBS_CONCURRENT',
+    'CONTAINER_WCSIM','CONTAINER_WCPROD']
 
     for key in keywords:
         if not key in cfg.keys():
             print('ERROR: config missing a keyword',key)
+            sys.exit(1)
+
+    for key in ['CONTAINER_WCSIM','CONTAINER_WCPROD']:
+        if not os.path.isfile(cfg[key]):
+            print(f"ERROR: a container missing '{cfg[key]}'")
             sys.exit(1)
 
     return cfg
@@ -91,6 +114,9 @@ def main():
         cfg['SLURM_NJOBS_CONCURRENT'],
         EXTRA_FLAGS,
         cfg['STORAGE_ROOT'],
+        cfg['CONTAINER_WCPROD'],
+        cfg['CONTAINER_WCSIM'],
+        cfg['CONTAINER_WCPROD'],
         )
 
     with open('run_shotgun_slac.sh','w') as f:

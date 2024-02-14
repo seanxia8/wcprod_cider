@@ -105,22 +105,7 @@ def main():
 		contents = template % (dx,dy,dz,cfg['x'],cfg['y'],cfg['z'],nphotons,out_file)
 		f.write(contents)
 
-	# Step 2: run geant 4
-	with open(log_file,'w') as f:
-		proc=subprocess.run(['$WCSIM_BUILDDIR/WCSim',macro_file],
-			stdout=subprocess.PIPE,
-			stderr=subprocess.STDOUT)
-		for line in proc.stdout:
-			sys.stdout.write(line)
-			f.write(line)
-		proc.wait()
-
-	# Step 3: check the output file
-	if not os.path.isfile(out_file):
-		print(f"ERROR: output file '{out_file}' does not exist.")
-		sys.exit(ERROR_OUTPUT_NOT_PRESENT)
-
-	# Step 4: copy to the storage
+	# Step 2: prepare/verify the storage space
 	unit_K=1000
 	unit_M=unit_K*1000
 	tier3 = config_id % unit_M
@@ -134,6 +119,22 @@ def main():
 		print(f"Failed to create the storage directory '{storage_path}'")
 		sys.exit(ERROR_STORAGE_CREATION)
 
+	# Step 3: run geant 4
+	with open(log_file,'w') as f:
+		proc=subprocess.run(['$WCSIM_BUILDDIR/WCSim',macro_file],
+			stdout=subprocess.PIPE,
+			stderr=subprocess.STDOUT)
+		for line in proc.stdout:
+			sys.stdout.write(line)
+			f.write(line)
+		proc.wait()
+
+	# Step 4: check the output file
+	if not os.path.isfile(out_file):
+		print(f"ERROR: output file '{out_file}' does not exist.")
+		sys.exit(ERROR_OUTPUT_NOT_PRESENT)
+
+	# Step 5: copy to the storage
 	storage_file = os.path.join(storage_path,out_file)
 	if os.path.isfile(storage_file):
 		print(f"ERROR: output file '{out_file}' already is present in the storage!")
@@ -142,12 +143,12 @@ def main():
 
 	shutil.copy2(out_file,storage_file)
 
-	# Step 5: check the file in the storage
+	# Step 6: check the file in the storage
 	if not os.path.isfile(storage_file):
 		print(f"ERROR: storage file {storage_file} does not exist.")
 		sys.exit(ERROR_STORAGE_NOT_PRESENT)
 
-	# Step 5: log to the database
+	# Step 7: log to the database
 	db.register_file(project,config_id,storage_file,nphotons)
 
 	sys.exit(0)
