@@ -22,7 +22,7 @@ TEMPLATE_G4='''
 /WCSim/SavePi0                         false
 /DAQ/Digitizer                         SKI
 /DAQ/Trigger                           NDigits
-/control/execute                       ${WCSIMDIR}/macros/daq.mac
+/control/execute                       /src/WCSim/macros/daq.mac
 /DarkRate/SetDarkRate                  0 kHz
 /DarkRate/SetDarkMode                  1
 /DarkRate/SetDarkHigh                  100000

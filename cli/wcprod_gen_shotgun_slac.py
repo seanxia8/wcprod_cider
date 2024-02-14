@@ -29,7 +29,6 @@ Project:  ${1}
 NPhotons: ${2}
 NEvents:  ${3}
 Storage:  %s/${1}
-WCSIM_BUILDDIR: ${WCSIMDIR}/build
 ROOT_SETUP: /src/root/install/bin/thisroot.sh
 " > setup_job.yaml
 
