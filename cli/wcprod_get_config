@@ -1,0 +1,13 @@
+#!/usr/bin/python
+from wcprod import get_config
+import sys
+
+if __name__ == '__main__':
+
+	if not len(sys.argv) == 2:
+		print('Usage: %s CONFIG_NAME' % sys.argv[0])
+		print("Try 'list_config' to list available CONFIG_NAME option values")
+		sys.exit(1)
+	
+	print(get_config(sys.argv[1]))
+	sys.exit(0)

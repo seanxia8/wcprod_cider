@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 import sys,os
 import shutil
 import subprocess
@@ -11,11 +10,10 @@ ERROR_MISSING_ARG_COUNT=1
 ERROR_MISSING_CONFIGFILE=2
 ERROR_MISSING_KEYWORD=3
 ERROR_MISSING_DBFILE=4
-ERROR_MISSING_WCSIM_BUILDDIR=5
-ERROR_MISSING_EVENT=6
-ERROR_PROJECT_NOT_FOUND=7
-ERROR_OUTPUT_NOT_PRESENT=8
-ERROR_STORAGE_ALREADY_PRESENT=9
+ERROR_MISSING_EVENT=5
+ERROR_PROJECT_NOT_FOUND=6
+ERROR_OUTPUT_NOT_PRESENT=7
+ERROR_STORAGE_ALREADY_PRESENT=8
 
 def parse_config(cfg_file):
 
@@ -23,22 +21,19 @@ def parse_config(cfg_file):
 		print(f"ERROR: configuration file '{cfg_file}' does not exist.")
 		sys.exit(ERROR_MISSING_CONFIGFILE)
 
-	cfg=yaml.safe_load(cfg_file)
+	with open(cfg_file,'r') as f:
+		cfg=yaml.safe_load(f)
 
-	for key in ['DBFile','ConfigID','Destination','Output','NPhotons','NEvents','NEventsOutput']:
-		if not key in cfg.keys():
-			print('ERROR: configuration lacking a keyword:',key)
-			sys.exit(ERROR_MISSING_KEYWORD)
+		for key in ['DBFile','ConfigID','Destination','Output','NPhotons','NEvents','NEventsOutput']:
+			if not key in cfg.keys():
+				print('ERROR: configuration lacking a keyword:',key)
+				sys.exit(ERROR_MISSING_KEYWORD)
 
-	if not os.path.isfile(cfg['DBFile']):
-		print(f"ERROR: DBFile '{cfg['DBFile']}' does not exist.")
-		sys.exit(ERROR_MISSING_DBFILE)
+		if not os.path.isfile(cfg['DBFile']):
+			print(f"ERROR: DBFile '{cfg['DBFile']}' does not exist.")
+			sys.exit(ERROR_MISSING_DBFILE)
 
-	if not os.path.isdir(cfg['WCSIM_BUILDDIR']):
-		print(f"ERROR: WCSIM_BUILDDIR '{cfg['WCSIM_BUILDDIR']}' is not a directory.")
-		sys.exit(ERROR_MISSING_WCSIM_BUILDDIR)
-
-	return cfg
+		return cfg
 
 def main():
 
@@ -51,8 +46,9 @@ def main():
 
 	dbfile   = cfg['DBFile']
 	project  = cfg['Project']
+	config_id= int(cfg['ConfigID'])
 	nphotons = int(cfg['NPhotons'])
-	storage  = cfg['Storage']
+	storage  = cfg['Destination']
 	out_file = cfg['Output']
 	nevents_expected = int(cfg['NEvents'])
 	nevents_recorded = int(cfg['NEventsOutput'])

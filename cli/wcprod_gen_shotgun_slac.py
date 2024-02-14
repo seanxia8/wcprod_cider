@@ -1,9 +1,10 @@
 #!/usr/bin/python3
 import sys,os
 import yaml
+import wcprod
 
-TEMPLATE_MAIN='''#!/bin/bash
-#SBATCH --job-name=dntp
+TEMPLATE='''#!/bin/bash
+#SBATCH --job-name=wcprod
 #SBATCH --nodes=1
 #SBATCH --partition=%s
 #SBATCH --account=%s
@@ -17,25 +18,23 @@ TEMPLATE_MAIN='''#!/bin/bash
 %s
 
 # Set-up a work dir
-export WORKDIR=${LSCRATCH}/workdir_${SLURM_JOB_ID}
+export WORKDIR=%s
 mkdir -p $WORKDIR
 cd $WORKDIR
 
 # Generate a configuration file
 echo "
-DBFile:   /sdf/data/neutrino/wcprod/${1}/config.db
+DBFile:   %s
 Project:  ${1}
 NPhotons: ${2}
 NEvents:  ${3}
 Storage:  %s/${1}
 WCSIM_BUILDDIR: ${WCSIMDIR}/build
 ROOT_SETUP: /src/root/install/bin/thisroot.sh
-" >> job.yaml
+" > setup_job.yaml
 
-# Prepare for WCSim job
-scp -r $WCSIMDIR/build/macros ./
-
-echo `printenv` 
+echo "job environment dump\n" >> log.txt
+echo `printenv` >> log.txt  2>&1
 
 # Execute N times
 for (( i=1;i<=$3;i++ ))
@@ -43,19 +42,20 @@ do
 
  echo "Starting: run counter $i"
  echo `date`
- singularity exec -B /sdf %s python3 setup_shotgun.py job.yaml
+ singularity exec %s %s wcprod_setup_shotgun.py setup_job.yaml
 
  echo "Running Geant4"
  echo `date`
- singularity run -B /sdf %s g4.mac 
+ singularity exec %s scp -r /src/WCSim/build/macros ./
+ singularity run  %s g4.mac 
 
  echo "Running check"
  echo `date`
- singularity run -B /sdf %s check.sh
+ singularity exec %s bash wcprod_check.sh
 
  echo "Wrapping up"
  echo `date`
- singularity exec -B /sdf %s python3 job_shotgun.py wrapup.yaml
+ singularity exec %s %s wcprod_wrapup_shotgun.py wrapup_job.yaml
 
  echo "Finished!"
  echo `date`
@@ -66,14 +66,20 @@ echo `date`
 '''
 
 def parse_config(cfg):
-    if not os.path.isfile(cfg):
-        print(f"Configuration yaml file '{cfg}' does not exist.")
+
+    cfg_candidates = wcprod.list_config()
+
+    if not os.path.isfile(cfg) and not cfg in cfg_candidates:
+        print(f"Configuration '{cfg}' not found as a file nor keywords.")
         sys.exit(1)
 
-    cfg = yaml.safe_load(open(cfg,'r').read())
-    keywords = ['STORAGE_ROOT',
+    if os.path.isfile(cfg):
+        cfg = yaml.safe_load(open(cfg,'r').read())
+    else:
+        cfg = yaml.safe_load(open(wcprod.get_config(cfg),'r').read())
+    keywords = ['WCPROD_STORAGE_ROOT','WCPROD_WORK_DIR','WCPROD_DB_FILE',
     'SLURM_LOG_DIR','SLURM_TIME','SLURM_MEM',
-    'SLURM_ACCOUNT','SLURM_PARTITION',
+    'SLURM_ACCOUNT','SLURM_PARTITION','SLURM_PREEMPTABLE',
     'SLURM_NCPU','SLURM_NJOBS_TOTAL','SLURM_NJOBS_CONCURRENT',
     'CONTAINER_WCSIM','CONTAINER_WCPROD']
 
@@ -82,10 +88,28 @@ def parse_config(cfg):
             print('ERROR: config missing a keyword',key)
             sys.exit(1)
 
-    for key in ['CONTAINER_WCSIM','CONTAINER_WCPROD']:
+    for key in ['CONTAINER_WCSIM','CONTAINER_WCPROD','WCPROD_DB_FILE']:
         if not os.path.isfile(cfg[key]):
             print(f"ERROR: a container missing '{cfg[key]}'")
             sys.exit(1)
+
+
+    if 'BIND_PATH' in cfg:
+        if not type(cfg['BIND_PATH']) in [type(str()),type(list())]:
+            print(f"ERROR: BIND_PATH value '{cfg['BIND_PATH']}' must be a string or a list of strings")
+        if type(cfg['BIND_PATH']) == type(str()):
+            cfg['BIND_PATH'] = [cfg['BIND_PATH']]
+
+        cmd = '-B '
+        for p in cfg['BIND_PATH']:
+            if not os.path.isdir(p):
+                print(f"ERROR: cannot bind non-existent path '{cfg['BIND_PATH']}' ")
+                sys.exit(1)
+            cmd = cmd + p + ','
+
+        cfg['BIND_PATH'] = cmd.rstrip(',')
+    else:
+        cfg['BIND_PATH'] = ''
 
     return cfg
 
@@ -113,9 +137,15 @@ def main():
         cfg['SLURM_NJOBS_TOTAL'],
         cfg['SLURM_NJOBS_CONCURRENT'],
         EXTRA_FLAGS,
-        cfg['STORAGE_ROOT'],
+        cfg['WCPROD_WORK_DIR'],
+        cfg['WCPROD_DB_FILE'],
+        cfg['WCPROD_STORAGE_ROOT'],
+        cfg['BIND_PATH'],
         cfg['CONTAINER_WCPROD'],
         cfg['CONTAINER_WCSIM'],
+        cfg['CONTAINER_WCSIM'],
+        cfg['CONTAINER_WCSIM'],
+        cfg['BIND_PATH'],
         cfg['CONTAINER_WCPROD'],
         )
 

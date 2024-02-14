@@ -1,0 +1,9 @@
+#!/usr/bin/python
+from wcprod import list_config
+import sys
+
+if __name__ == '__main__':
+	for c in list_config():
+		print(c)
+	sys.exit(0)
+

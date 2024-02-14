@@ -1,0 +1,16 @@
+BIND_PATH:           /home/drinkingkazu
+CONTAINER_WCSIM:     /home/drinkingkazu/sw/images/wcsim_24.02.01.sif
+CONTAINER_WCPROD:    /home/drinkingkazu/sw/images/wcprod.sif
+WCPROD_DB_FILE:      /home/drinkingkazu/sw/wcprod/test/test_v0.db
+WCPROD_STORAGE_ROOT: /home/drinkingkazu/sw/wcprod/test
+WCPROD_WORK_DIR:     /home/drinkingkazu/sw/wcprod/test
+SLURM_LOG_DIR: /home/drinkingkazu/sw/wcprod/test
+SLURM_TIME:    0:30:00
+SLURM_MEM:     4
+SLURM_NCPU:    1
+SLURM_NJOBS_TOTAL: 2
+SLURM_NJOBS_CONCURRENT: 1
+SLURM_ACCOUNT: neutrino
+SLURM_PARTITION: ampere
+SLURM_PREEMPTABLE: True
+SLURM_NODELIST: ''

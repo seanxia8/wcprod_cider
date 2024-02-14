@@ -1,9 +1,12 @@
+#!/usr/bin/python
 import sys,os
 import shutil
 import subprocess
 from wcprod import wcprod_project,wcprod_db
 import numpy as np
 import yaml
+
+WRAPUP_CONFIG_FILE_NAME='wrapup_job.yaml'
 
 TEMPLATE_G4='''
 /run/verbose                           1
@@ -56,7 +59,7 @@ void %s()
 	gSystem->Load("${WCSIMDIR}/build/libWCSimRoot.so");
 
 	TFile *file;
-	file = new TFile("%s,"read");
+	file = new TFile("%s","read");
 	if (!file->IsOpen()){
 	  cout << "Error, could not open input file: " << input_file << endl;
 	  return -1;
@@ -82,11 +85,8 @@ ERROR_MISSING_ARG_COUNT=1
 ERROR_MISSING_CONFIGFILE=2
 ERROR_MISSING_KEYWORD=3
 ERROR_MISSING_DBFILE=4
-ERROR_MISSING_WCSIM_BUILDDIR=5
-ERROR_INCORRECT_WCSIM_BUILDDIR=6
-ERROR_MISSING_ROOT_SETUP=7
-ERROR_PROJECT_NOT_FOUND=8
-ERROR_STORAGE_CREATION=9
+ERROR_PROJECT_NOT_FOUND=5
+ERROR_STORAGE_CREATION=6
 
 def parse_config(cfg_file):
 
@@ -94,33 +94,19 @@ def parse_config(cfg_file):
 		print(f"ERROR: configuration file '{cfg_file}' does not exist.")
 		sys.exit(ERROR_MISSING_CONFIGFILE)
 
-	cfg=yaml.safe_load(cfg_file)
+	with open(cfg_file,'r') as f:
+		cfg=yaml.safe_load(f)
 
-	for key in ['DBFile','Project','NPhotons','NEvents','Storage','WCSIM_BUILDDIR','ROOT_SETUP']:
-		if not key in cfg.keys():
-			print('ERROR: configuration lacking a keyword:',key)
-			sys.exit(ERROR_MISSING_KEYWORD)
+		for key in ['DBFile','Project','NPhotons','NEvents','Storage','WCSIM_BUILDDIR','ROOT_SETUP']:
+			if not key in cfg.keys():
+				print('ERROR: configuration lacking a keyword:',key)
+				sys.exit(ERROR_MISSING_KEYWORD)
 
-	if not os.path.isfile(cfg['DBFile']):
-		print(f"ERROR: DBFile '{cfg['DBFile']}' does not exist.")
-		sys.exit(ERROR_MISSING_DBFILE)
+		if not os.path.isfile(cfg['DBFile']):
+			print(f"ERROR: DBFile '{cfg['DBFile']}' does not exist.")
+			sys.exit(ERROR_MISSING_DBFILE)
 
-	if not os.path.isdir(cfg['WCSIM_BUILDDIR']):
-		print(f"ERROR: WCSIM_BUILDDIR '{cfg['WCSIM_BUILDDIR']}' is not a directory.")
-		sys.exit(ERROR_MISSING_WCSIM_BUILDDIR)
-
-	if not os.path.isdir(os.path.join(cfg['WCSIM_BUILDDIR'],'macros')):
-		print(f"ERROR: WCSIM_BUILDDIR '{cfg["WCSIM_BUILDDIR"]}' does not contains 'macros' subdir")
-		for d in os.path.listdir(cfg['WCSIM_BUILDDIR']):
-			print(d)
-		sys.exit(ERROR_INCORRECT_WCSIM_BUILDDIR)
-
-	if not os.path.isfile(cfg['ROOT_SETUP']):
-		print(f"ERROR: ROOT setup script '{cfg['ROOT_SETUP']}' not found")
-		sys.exit(ERROR_MISSING_ROOT_SETUP)
-
-
-	return cfg
+		return cfg
 
 def main():
 
@@ -162,9 +148,9 @@ def main():
 	# Step 2: prepare/verify the storage space
 	unit_K=1000
 	unit_M=unit_K*1000
-	tier3 = config_id % unit_M
-	tier2 = (config_id - unit_M*tier3) % unit_K
-	storage_path = 'tier1_%03d/tier2_%03d/tier3_%09d' % (tier3,tier2,config_id)
+	tier1 = int(config_id / unit_M)
+	tier2 = int((config_id - unit_M*tier1) / unit_K)
+	storage_path = 'tier1_%03d/tier2_%03d/tier3_%09d' % (tier1,tier2,config_id)
 	storage_path = os.path.join(storage_root,storage_path)
 
 	try:
@@ -174,25 +160,26 @@ def main():
 		sys.exit(ERROR_STORAGE_CREATION)
 
 	# Step 3: store the configuration for the wrapup file
-	wrapup_cfg = dict(DBFile=dbfile,ConfigID=config_id,Destination=storage_path,Output=out_file,NPhotons=nphotons,NEvents=nevents)
-	wrapup_file = 'wrapup.yaml'
+	wrapup_cfg = dict(DBFile=dbfile,Project=project,ConfigID=config_id,Destination=storage_path,Output=out_file,NPhotons=nphotons,NEvents=nevents)
+	wrapup_file = WRAPUP_CONFIG_FILE_NAME
 	wrapup_record = 'wrapup_%s_%09d_%03d.yaml' % (project,config_id,file_ctr)
 	with open(wrapup_file, 'w') as f:
 	    yaml.dump(wrapup_cfg, f, default_flow_style=False)
-	with open(wrapup_record) as f:
+	with open(wrapup_record, 'w') as f:
 		yaml.dump(wrapup_cfg, f, default_flow_style=False)
 	with open('log.txt','a') as f:
-		f.write('\n\n'+wrapup_cfg+'\n\n')
+		f.write('\n\n')
+		yaml.dump(wrapup_cfg, f, default_flow_style=False)
 
 	# Step 4: prepare the check script for wcsim file
 	cmacro_name = 'wcprod_check'
-	contents = TEMPLATE_CHECK_CMACRO % (macro_name,out_file,wrapup_file,wrapup_record)
+	contents = TEMPLATE_CHECK_CMACRO % (cmacro_name,out_file,wrapup_file,wrapup_record)
 	with open('log.txt','a') as f:
 		f.write('\n\n'+contents+'\n\n')
-	with open('%s.C' % macro_name,'w') as f:
+	with open('%s.C' % cmacro_name,'w') as f:
 		f.write(contents)
 
-	contents = TEMPLATE_CHECK_SHELL % (root_setup,macro_name)
+	contents = TEMPLATE_CHECK_SHELL % (root_setup,cmacro_name)
 	with open('wcprod_check.sh','w') as f:
 		f.write(contents)
 
