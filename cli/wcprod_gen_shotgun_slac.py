@@ -36,7 +36,7 @@ echo "job environment dump\n" >> log.txt
 echo `printenv` >> log.txt  2>&1
 
 # Execute N times
-for (( i=1;i<=$3;i++ ))
+for (( i=1;i<=$4;i++ ))
 do
 
  echo "Starting: run counter $i"
