@@ -22,7 +22,7 @@ TEMPLATE_G4='''
 /WCSim/SavePi0                         false
 /DAQ/Digitizer                         SKI
 /DAQ/Trigger                           NDigits
-/control/execute                       %s/macros/daq.mac
+/control/execute                       ${WCSIMDIR}/macros/daq.mac
 /DarkRate/SetDarkRate                  0 kHz
 /DarkRate/SetDarkMode                  1
 /DarkRate/SetDarkHigh                  100000
@@ -97,7 +97,7 @@ def parse_config(cfg_file):
 	with open(cfg_file,'r') as f:
 		cfg=yaml.safe_load(f)
 
-		for key in ['DBFile','Project','NPhotons','NEvents','Storage','WCSIM_BUILDDIR','ROOT_SETUP']:
+		for key in ['DBFile','Project','NPhotons','NEvents','Storage','ROOT_SETUP']:
 			if not key in cfg.keys():
 				print('ERROR: configuration lacking a keyword:',key)
 				sys.exit(ERROR_MISSING_KEYWORD)
@@ -123,7 +123,6 @@ def main():
 	nevents  = int(cfg['NEvents'])
 	storage_root = cfg['Storage']
 	root_setup   = cfg['ROOT_SETUP']
-	wcsim_dir    = cfg['WCSIM_BUILDDIR']
 
 	db=wcprod_db(dbfile)
 	if not db.exist_project(project):
@@ -139,7 +138,7 @@ def main():
 	dy = np.sin(cfg['theta']/180.*np.pi)*np.sin(cfg['phi']/360.*2*np.pi)
 	out_file   = 'out_%s_%09d_%03d.root' % (project,config_id,file_ctr)
 
-	contents = TEMPLATE_G4 % (wcsim_dir,dx,dy,dz,cfg['x'],cfg['y'],cfg['z'],nphotons,out_file,nevents)
+	contents = TEMPLATE_G4 % (dx,dy,dz,cfg['x'],cfg['y'],cfg['z'],nphotons,out_file,nevents)
 	with open('log.txt','a') as f:	
 		f.write('\n\n'+contents+'\n\n')
 	with open('g4.mac','w') as f:
