@@ -645,7 +645,7 @@ class wcprod_db:
                 
                 # Register the table ID 
                 cmd  = f"INSERT INTO map_{project} (table_id, config_range_min, config_range_max, photon_ctr, target_ctr, lock) "
-                cmd += f"VALUES ({table_index}, {start}, {end-1}, 0, {len(df)*(p.num_photons), 0})"
+                cmd += f"VALUES ({table_index}, {start}, {end-1}, 0, {len(df)*(p.num_photons)}, 0)"
                 cur.execute(cmd)
                 
             self._conn.commit()
