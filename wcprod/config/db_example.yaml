@@ -1,8 +1,8 @@
 project: example_project
-rmin: 0
-rmax: 200
-zmin: 0
-zmax: 400
-gap_space: 30
+rmin:  0
+rmax:  340
+zmin: -150
+zmax:  150
+gap_space: 20
 gap_angle: 10
-num_photons: 100000000
+num_photons: 30000000

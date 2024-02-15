@@ -56,6 +56,7 @@ TEMPLATE_CHECK_CMACRO='''
 // Simple example of reading a generated Root file
 void %s()
 {
+	gEnv->GetValue("TFile.Recover", 0);
 	gSystem->Load("${WCSIMDIR}/build/libWCSimRoot.so");
 
 	TFile *file;

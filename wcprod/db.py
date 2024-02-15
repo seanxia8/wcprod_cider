@@ -315,7 +315,7 @@ class wcprod_db:
             if not prioritize:
                 table_id = int(np.random.random()*self.table_count(project))
             else:
-                cmd = f"SELECT table_id FROM map_{project} WHERE photon_ctr <= target_ctr ORDER BY photon_ctr ASC LIMIT 1"
+                cmd = f"SELECT table_id FROM map_{project} WHERE photon_ctr <= target_ctr AND lock < 1 ORDER BY photon_ctr ASC LIMIT 1"
                 cur.execute(cmd)
                 res = cur.fetchall()
                 if len(res)<1:
@@ -340,6 +340,58 @@ class wcprod_db:
                 file_ctr=res[6],
                 )
         
+
+    def lock_table(self,project:str,table_id:int=None):
+        """Lock tables with the specified table ID
+
+        Lock the specified table ID so that it is excluded from the get_random_config function.
+        If the table_id is unspecified, all tables will be locked.
+
+        Parameters
+        ----------
+        project : str
+            The name of a project to access in the database
+
+        table_id : int (optional)
+            If provided, limit the query to the specified subgroup (table) 
+        """
+
+        with closing(self._conn.cursor()) as cur:
+
+            if table_id is None:
+                cmd = f"UPDATE map_{project} SET lock = 1"
+                cur.execute(cmd)
+
+            else:
+                cmd = f"UPDATE map_{project} SET lock = 1 WHERE table_id = {int(table_id)}"
+                cur.execute(cmd)
+
+
+    def unlock_table(self,project:str,table_id:int=None):
+        """Unlock tables with the specified table ID
+
+        Unlock the specified table ID so that it is included by the get_random_config function.
+        If the table_id is unspecified, all tables will be locked.
+
+        Parameters
+        ----------
+        project : str
+            The name of a project to access in the database
+
+        table_id : int (optional)
+            If provided, limit the query to the specified subgroup (table) 
+        """
+
+        with closing(self._conn.cursor()) as cur:
+
+            if table_id is None:
+                cmd = f"UPDATE map_{project} SET lock = 0"
+                cur.execute(cmd)
+
+            else:
+                cmd = f"UPDATE map_{project} SET lock = 0 WHERE table_id = {int(table_id)}"
+                cur.execute(cmd)
+
 
     def list_files(self,project:str,config_id:int=None,table_id:int=None):
         """Retrieve a list of files produced in the production
@@ -545,7 +597,7 @@ class wcprod_db:
 
             # Create a management table
             print('Creating a cross-table management db')
-            cmd = f"CREATE TABLE map_{project} (table_id INTEGER PRIMARY KEY, config_range_min INT, config_range_max INT, photon_ctr INT, target_ctr INT)"
+            cmd = f"CREATE TABLE map_{project} (table_id INTEGER PRIMARY KEY, config_range_min INT, config_range_max INT, photon_ctr INT, target_ctr INT, lock int)"
             cur.execute(cmd)
             
             # Create a geometry table
@@ -592,8 +644,8 @@ class wcprod_db:
                 cur.execute(f"CREATE TABLE {file_tablename}{table_index} (file_id INTEGER PRIMARY KEY AUTOINCREMENT, config_id INT, file_path STRING, photon_ctr INT, Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)")
                 
                 # Register the table ID 
-                cmd  = f"INSERT INTO map_{project} (table_id, config_range_min, config_range_max, photon_ctr, target_ctr) "
-                cmd += f"VALUES ({table_index}, {start}, {end-1}, 0, {len(df)*(p.num_photons)})"
+                cmd  = f"INSERT INTO map_{project} (table_id, config_range_min, config_range_max, photon_ctr, target_ctr, lock) "
+                cmd += f"VALUES ({table_index}, {start}, {end-1}, 0, {len(df)*(p.num_photons), 0})"
                 cur.execute(cmd)
                 
             self._conn.commit()

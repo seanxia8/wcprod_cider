@@ -1,9 +1,13 @@
 BIND_PATH:           /home/drinkingkazu
 CONTAINER_WCSIM:     /home/drinkingkazu/sw/images/wcsim_24.02.01.sif
 CONTAINER_WCPROD:    /home/drinkingkazu/sw/images/wcprod.sif
-WCPROD_DB_FILE:      /home/drinkingkazu/sw/wcprod/test/test_v0.db
-WCPROD_STORAGE_ROOT: /home/drinkingkazu/sw/wcprod/test
-WCPROD_WORK_DIR:     /home/drinkingkazu/sw/wcprod/test
+WCPROD_DB_FILE:      /home/drinkingkazu/sw/wcprod/test_v0.db
+WCPROD_PROJECT:      local_test
+WCPROD_NEVENTS:      20
+WCPROD_NPHOTONS:     200000
+WCPROD_NLOOPS:       5
+WCPROD_STORAGE_ROOT: /home/drinkingkazu/sw/wcprod/job
+WCPROD_WORK_DIR:     /home/drinkingkazu/sw/wcprod/job
 SLURM_LOG_DIR: /home/drinkingkazu/sw/wcprod/test
 SLURM_TIME:    0:30:00
 SLURM_MEM:     4

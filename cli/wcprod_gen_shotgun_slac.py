@@ -25,10 +25,10 @@ cd $WORKDIR
 # Generate a configuration file
 echo "
 DBFile:   %s
-Project:  ${1}
-NPhotons: ${2}
-NEvents:  ${3}
-Storage:  %s/${1}
+Project:  %s
+NPhotons: %s
+NEvents:  %s
+Storage:  %s
 ROOT_SETUP: /src/root/install/bin/thisroot.sh
 " > setup_job.yaml
 
@@ -36,7 +36,7 @@ echo "job environment dump\n" >> log.txt
 echo `printenv` >> log.txt  2>&1
 
 # Execute N times
-for (( i=1;i<=$4;i++ ))
+for (( i=1;i<=%d;i++ ))
 do
 
  echo "Starting: run counter $i"
@@ -77,6 +77,7 @@ def parse_config(cfg):
     else:
         cfg = yaml.safe_load(open(wcprod.get_config(cfg),'r').read())
     keywords = ['WCPROD_STORAGE_ROOT','WCPROD_WORK_DIR','WCPROD_DB_FILE',
+    'WCPROD_PROJECT','WCPROD_NEVENTS','WCPROD_NPHOTONS','WCPROD_NLOOPS',
     'SLURM_LOG_DIR','SLURM_TIME','SLURM_MEM',
     'SLURM_ACCOUNT','SLURM_PARTITION','SLURM_PREEMPTABLE',
     'SLURM_NCPU','SLURM_NJOBS_TOTAL','SLURM_NJOBS_CONCURRENT',
@@ -86,12 +87,16 @@ def parse_config(cfg):
         if not key in cfg.keys():
             print('ERROR: config missing a keyword',key)
             sys.exit(1)
-
+    
     for key in ['CONTAINER_WCSIM','CONTAINER_WCPROD','WCPROD_DB_FILE']:
         if not os.path.isfile(cfg[key]):
             print(f"ERROR: a container missing '{cfg[key]}'")
             sys.exit(1)
 
+    db=wcprod_db(cfg['WCPROD_DB_FILE'])
+    if not db.exist_project(cfg['WCPROD_PROJECT']):
+        print(f"ERROR: project '{project}' not found in the database {cfg['WCPROD_DB_FILE']}.")
+        sys.exit(1)
 
     if 'BIND_PATH' in cfg:
         if not type(cfg['BIND_PATH']) in [type(str()),type(list())]:
@@ -138,7 +143,11 @@ def main():
         EXTRA_FLAGS,
         cfg['WCPROD_WORK_DIR'],
         cfg['WCPROD_DB_FILE'],
-        cfg['WCPROD_STORAGE_ROOT'],
+        cfg['WCPROD_PROJECT'],
+        cfg['WCPROD_NPHOTONS'],
+        cfg['WCPROD_NEVENTS'],
+        os.path.join(cfg['WCPROD_STORAGE_ROOT'],cfg['WCPROD_PROJECT']),
+        cfg['WCPROD_NLOOPS'],
         cfg['BIND_PATH'],
         cfg['CONTAINER_WCPROD'],
         cfg['CONTAINER_WCSIM'],

@@ -82,7 +82,7 @@ def main():
 		sys.exit(ERROR_STORAGE_NOT_PRESENT)
 
 	# Step 4: log to the database
-	db.register_file(project,config_id,storage_file,nphotons)
+	db.register_file(project,config_id,storage_file,nphotons*nevents_recorded)
 
 	sys.exit(0)
 
