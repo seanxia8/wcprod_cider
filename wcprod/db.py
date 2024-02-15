@@ -366,6 +366,9 @@ class wcprod_db:
                 cmd = f"UPDATE map_{project} SET lock = 1 WHERE table_id = {int(table_id)}"
                 cur.execute(cmd)
 
+            # finish transaction
+            self._conn.commit()
+
 
     def unlock_table(self,project:str,table_id:int=None):
         """Unlock tables with the specified table ID
@@ -391,6 +394,9 @@ class wcprod_db:
             else:
                 cmd = f"UPDATE map_{project} SET lock = 0 WHERE table_id = {int(table_id)}"
                 cur.execute(cmd)
+
+            # finish transaction
+            self._conn.commit()
 
 
     def list_files(self,project:str,config_id:int=None,table_id:int=None):
