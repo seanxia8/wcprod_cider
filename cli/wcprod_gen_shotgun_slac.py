@@ -95,7 +95,7 @@ def parse_config(cfg):
 
     db=wcprod.wcprod_db(cfg['WCPROD_DB_FILE'])
     if not db.exist_project(cfg['WCPROD_PROJECT']):
-        print(f"ERROR: project '{project}' not found in the database {cfg['WCPROD_DB_FILE']}.")
+        print(f"ERROR: project '{cfg['WCPROD_PROJECT']}' not found in the database {cfg['WCPROD_DB_FILE']}.")
         sys.exit(1)
 
     if 'BIND_PATH' in cfg:
