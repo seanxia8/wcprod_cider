@@ -93,7 +93,7 @@ def parse_config(cfg):
             print(f"ERROR: a container missing '{cfg[key]}'")
             sys.exit(1)
 
-    db=wcprod_db(cfg['WCPROD_DB_FILE'])
+    db=wcprod.wcprod_db(cfg['WCPROD_DB_FILE'])
     if not db.exist_project(cfg['WCPROD_PROJECT']):
         print(f"ERROR: project '{project}' not found in the database {cfg['WCPROD_DB_FILE']}.")
         sys.exit(1)
