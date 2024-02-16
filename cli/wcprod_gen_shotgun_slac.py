@@ -40,28 +40,35 @@ printenv
 for (( i=1;i<=%d;i++ ))
 do
 
+ echo
  echo "Starting: run counter $i"
  echo "Starting: run counter $i" >> log.txt  2>&1
  echo `date` && echo `date` >> log.txt  2>&1
  singularity exec %s %s wcprod_setup_shotgun.py setup_job.yaml >> log.txt  2>&1
 
+ echo
  echo "Running Geant4"
  echo `date` && echo `date` >> log.txt  2>&1
  singularity exec %s scp -r /src/WCSim/build/macros ./ 
  singularity run  %s g4.mac >> log.txt  2>&1
 
+ echo
  echo "Running check"
  echo `date` && echo `date` >> log.txt  2>&1
  singularity exec %s bash wcprod_check.sh >> log.txt  2>&1
 
+ echo
  echo "Wrapping up"
  echo `date` && echo `date` >> log.txt  2>&1
  singularity exec %s %s wcprod_wrapup_shotgun.py wrapup_job.yaml >> log.txt  2>&1
 
+ echo
  echo "Finished!" && echo "Finished!" >> log.txt  2>&1
  echo `date` && echo `date` >> log.txt  2>&1
+ echo
 done
 
+echo
 echo "Exiting" && echo "Exiting" >> log.txt  2>&1
 echo `date` && echo `date` >> log.txt  2>&1
 '''
