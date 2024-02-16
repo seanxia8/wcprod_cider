@@ -5,6 +5,7 @@ import subprocess
 from wcprod import wcprod_project,wcprod_db
 import numpy as np
 import yaml
+import time
 
 WRAPUP_CONFIG_FILE_NAME='wrapup_job.yaml'
 
@@ -34,7 +35,7 @@ TEMPLATE_G4='''
 /gps/direction                         %f %f %f
 /gps/position                          %f %f %f cm
 /gps/number                            %d
-/Tracking/fractionOpticalPhotonsToDraw 100
+/Tracking/fractionOpticalPhotonsToDraw 0
 /WCSimIO/RootFile                      %s
 /WCSimIO/SaveRooTracker                0
 /run/beamOn                            %d
@@ -160,7 +161,10 @@ def main():
 		sys.exit(ERROR_STORAGE_CREATION)
 
 	# Step 3: store the configuration for the wrapup file
-	wrapup_cfg = dict(DBFile=dbfile,Project=project,ConfigID=config_id,Destination=storage_path,Output=out_file,NPhotons=nphotons,NEvents=nevents)
+	wrapup_cfg = dict(DBFile=dbfile,Project=project,ConfigID=config_id,
+		StartTime=time.time(),
+		Destination=storage_path,Output=out_file,
+		NPhotons=nphotons,NEvents=nevents)
 	wrapup_file = WRAPUP_CONFIG_FILE_NAME
 	wrapup_record = 'wrapup_%s_%09d_%03d.yaml' % (project,config_id,file_ctr)
 	with open(wrapup_file, 'w') as f:

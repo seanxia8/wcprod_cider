@@ -5,6 +5,7 @@ import subprocess
 from wcprod import wcprod_project,wcprod_db
 import numpy as np
 import yaml
+import time
 
 ERROR_MISSING_ARG_COUNT=1
 ERROR_MISSING_CONFIGFILE=2
@@ -24,7 +25,7 @@ def parse_config(cfg_file):
 	with open(cfg_file,'r') as f:
 		cfg=yaml.safe_load(f)
 
-		for key in ['DBFile','ConfigID','Destination','Output','NPhotons','NEvents','NEventsOutput']:
+		for key in ['DBFile','ConfigID','Destination','Output','NPhotons','NEvents','NEventsOutput','StartTime']:
 			if not key in cfg.keys():
 				print('ERROR: configuration lacking a keyword:',key)
 				sys.exit(ERROR_MISSING_KEYWORD)
@@ -52,6 +53,7 @@ def main():
 	out_file = cfg['Output']
 	nevents_expected = int(cfg['NEvents'])
 	nevents_recorded = int(cfg['NEventsOutput'])
+	tstart   = cfg['StartTime']
 
 	if not nevents_expected == nevents_recorded:
 		print(f"ERROR: the number of events expected ({nevents_expected}) != recorded in file ({nevents_recorded})")
@@ -82,7 +84,7 @@ def main():
 		sys.exit(ERROR_STORAGE_NOT_PRESENT)
 
 	# Step 4: log to the database
-	db.register_file(project,config_id,storage_file,nphotons*nevents_recorded)
+	db.register_file(project,config_id,storage_file,nphotons*nevents_recorded,tstart-time.time())
 
 	sys.exit(0)
 

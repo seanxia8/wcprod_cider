@@ -34,34 +34,36 @@ ROOT_SETUP: /src/root/install/bin/thisroot.sh
 
 echo "job environment dump\n" >> log.txt
 echo `printenv` >> log.txt  2>&1
+printenv
 
 # Execute N times
 for (( i=1;i<=%d;i++ ))
 do
 
  echo "Starting: run counter $i"
- echo `date`
- singularity exec %s %s wcprod_setup_shotgun.py setup_job.yaml
+ echo "Starting: run counter $i" >> log.txt  2>&1
+ echo `date` && echo `date` >> log.txt  2>&1
+ singularity exec %s %s wcprod_setup_shotgun.py setup_job.yaml >> log.txt  2>&1
 
  echo "Running Geant4"
- echo `date`
- singularity exec %s scp -r /src/WCSim/build/macros ./
- singularity run  %s g4.mac 
+ echo `date` && echo `date` >> log.txt  2>&1
+ singularity exec %s scp -r /src/WCSim/build/macros ./ 
+ singularity run  %s g4.mac >> log.txt  2>&1
 
  echo "Running check"
- echo `date`
- singularity exec %s bash wcprod_check.sh
+ echo `date` && echo `date` >> log.txt  2>&1
+ singularity exec %s bash wcprod_check.sh >> log.txt  2>&1
 
  echo "Wrapping up"
- echo `date`
- singularity exec %s %s wcprod_wrapup_shotgun.py wrapup_job.yaml
+ echo `date` && echo `date` >> log.txt  2>&1
+ singularity exec %s %s wcprod_wrapup_shotgun.py wrapup_job.yaml >> log.txt  2>&1
 
- echo "Finished!"
- echo `date`
+ echo "Finished!" && echo "Finished!" >> log.txt  2>&1
+ echo `date` && echo `date` >> log.txt  2>&1
 done
 
-echo "Exiting"
-echo `date`
+echo "Exiting" && echo "Exiting" >> log.txt  2>&1
+echo `date` && echo `date` >> log.txt  2>&1
 '''
 
 def parse_config(cfg):

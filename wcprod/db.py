@@ -95,8 +95,8 @@ class wcprod_db:
                     raise ProjectIntegrityError(f"Configuration range {cfgmin} => {cfgmax} is invalid (table {data_map[i,0]} in map_{project})")
                 if (i+1) < len(data_map) and cfgmax >= data_map[i+1,1]:
                     raise ProjectIntegrityError(f"Configuration should not overlap: table {data_map[i,0]} range {cfgmin}=>{cfgmax} but the next table starts at {data_map[i+1,1]}")
-            # - cfg table
-            for index in data_map[:,0]:
+            # - cfg table tqdm
+            for index in tqdm(data_map[:,0]):
                 if not self.exist_table(f"cfg_{project}{index}"):
                     raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} should but does not exist.")
                 cmd = f"SELECT MIN(config_id), MAX(config_id), MAX(pos_id), MAX(dir_id) FROM cfg_{project}{index}"
@@ -647,7 +647,7 @@ class wcprod_db:
                 cur.execute(f"UPDATE {cfg_tablename}{table_index} SET Timestamp = '{current_timestamp}'")
 
                 # Create a file table
-                cur.execute(f"CREATE TABLE {file_tablename}{table_index} (file_id INTEGER PRIMARY KEY AUTOINCREMENT, config_id INT, file_path STRING, photon_ctr INT, Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)")
+                cur.execute(f"CREATE TABLE {file_tablename}{table_index} (file_id INTEGER PRIMARY KEY AUTOINCREMENT, config_id INT, file_path STRING, photon_ctr INT, duration FLOAT, Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)")
                 
                 # Register the table ID 
                 cmd  = f"INSERT INTO map_{project} (table_id, config_range_min, config_range_max, photon_ctr, target_ctr, lock) "
@@ -688,7 +688,7 @@ class wcprod_db:
             cur.execute(cmd)
         self._conn.commit()
         
-    def register_file(self,project:str,config_id:int,file_path:str,num_photons:int):    
+    def register_file(self,project:str,config_id:int,file_path:str,num_photons:int,duration:float):    
         """Register a new file
 
         Register a new file location in the final storage space to the database
@@ -707,6 +707,8 @@ class wcprod_db:
         num_photons : int
             The number of photons produced in the file
 
+        duration : float
+            The time in seconds that has taken to produce this file
         """
         # Check if the file exists and physical
         if not os.path.isfile(file_path):
@@ -729,7 +731,7 @@ class wcprod_db:
                             
             # retrieve the table id
             table_id = self.table_id(project,config_id)
-            cmd = f"INSERT INTO file_{project}{table_id} (config_id,file_path,photon_ctr) VALUES ({config_id},'{file_path}',{num_photons});"
+            cmd = f"INSERT INTO file_{project}{table_id} (config_id,file_path,photon_ctr,duration) VALUES ({config_id},'{file_path}',{num_photons},{duration});"
             cur.execute(cmd)
 
             current_timestamp = datetime.datetime.now().isoformat(" ",timespec='seconds')
