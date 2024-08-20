@@ -1,5 +1,5 @@
 import os, yaml
-from .utils import positions, directions, coordinates
+from .utils import positions, directions, voxels, coordinates
 
 class wcprod_project:
         
@@ -23,10 +23,12 @@ class wcprod_project:
         self._zmax    = float(cfg['zmax'])
         self._gap_space = float(cfg['gap_space'])
         self._gap_angle = float(cfg['gap_angle'])
+        self._n_phi_start = int(cfg.get('n_phi_start', 0))
         self._num_photons = int(cfg['num_photons'])
         
         self._positions  = positions(self.zmin,self.zmax,self.rmin,self.rmax,self.gap_space)
         self._directions = directions(self.gap_angle)
+        self._voxels     = voxels(self.zmin,self.zmax,self.rmin,self.rmax,self.gap_space,self.n_phi_start)        
         self._configs    = coordinates(self.positions,self.directions)        
         
     def __str__(self):
@@ -37,6 +39,7 @@ class wcprod_project:
           Z: {self.zmin} => {self.zmax}
         Gap space: {self.gap_space}
         Gap angle: {self.gap_angle}
+        Starting n phi: {self.n_phi_start}
         Sampling points: {self.positions.shape[0]}
         Sampling directions: {self.directions.shape[0]}
         Sampling configs: {self.configs.shape[0]}
@@ -57,11 +60,15 @@ class wcprod_project:
     @property
     def gap_angle(self): return self._gap_angle
     @property
+    def n_phi_start(self): return self._n_phi_start
+    @property
     def project(self): return self._project
     @property
     def positions(self): return self._positions
     @property
     def directions(self): return self._directions
+    @property
+    def voxels(self): return self._voxels
     @property
     def configs(self): return self._configs
     @property
@@ -84,7 +91,6 @@ class wcprod_project:
         fig=go.Figure(data=trace)
         return fig
 
-
     def draw_pos(self):
         import plotly.graph_objects as go
         pts = self.positions
@@ -96,3 +102,34 @@ class wcprod_project:
                           )
         fig=go.Figure(data=trace)
         return fig
+
+    def draw_vox_plane(self):
+        import plotly.graph_objects as go
+        import numpy as np
+        vox = self.voxels[0]
+        x_coords = [ [vox[i,0]*np.cos(vox[i,2]), vox[i,1]*np.cos(vox[i,2]), vox[i,1]*np.cos(vox[i,3]), vox[i,0]*np.cos(vox[i,3])] for i in range(len(vox))]
+        y_coords = [ [vox[i,0]*np.sin(vox[i,2]), vox[i,1]*np.sin(vox[i,2]), vox[i,1]*np.sin(vox[i,3]), vox[i,0]*np.sin(vox[i,3])] for i in range(len(vox))]
+
+        fig = go.Figure()
+
+        colors = [
+            'rgba(0, 0, 255, 0.7)',  # Blue with 70% opacity
+            'rgba(0, 255, 255, 0.9)'  # Cyan with 90% opacity
+        ]
+        
+        for i in range(len(vox)):
+            x = x_coords[i] + [x_coords[i][0]]
+            y = y_coords[i] + [y_coords[i][0]]
+
+            fig.add_trace(go.Scatter(
+                x=x,y=y,
+                fill='toself',
+                line=dict(color='royalblue'),
+                fillcolor=colors[i%len(colors)],
+                mode='lines',
+                name=f'Trapezoid {i+1}'
+                ))
+                    
+        return fig
+        
+        

@@ -69,6 +69,66 @@ def positions(z_min,z_max,r_min,r_max,gap_size,verbose=False):
         pts[start:end,2] = z
     return pts
 
+def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
+
+    #define the edges of voxels with the same volume
+    
+    if r_min < 0 or r_max <= r_min:
+        print('r_min must be positive and r_max must be larger than r_min')
+        raise ValueError
+    if nphi_initial <= 0:
+        print('To generate voxels, n_phi_start must be positive integer')
+        raise ValueError
+    
+    nz = int((z_max - z_min)/gap_size)+1
+    nr = int((r_max - r_min)/gap_size)+1
+    z_start = z_min
+    r_start = r_min
+    #z_start = (z_max - z_min - (nz-1)*gap_size)/2. + z_min
+    #r_start = (r_max - r_min - (nr-1)*gap_size)/2. + r_min
+
+    rphi_pts=[]
+    base_seg = 2 * np.pi / nphi_initial
+    r_base = r_min + gap_size
+    for i in range(nr):
+        r = r_start + gap_size
+        #if (2*np.pi*r) < 2*gap_size:
+        #    continue
+        # ensure eqivolume voxels
+        new_seg = base_seg * (r_base**2 - r_min**2) / (r**2 - r_start**2)
+        n = int((2 * np.pi) / new_seg + 0.5)
+        
+        pts = np.zeros(shape=(n,4),dtype=float)
+        pts[:,0]=r_start
+        pts[:,1]=r
+        pts[:,2]=np.arange(n)*(2*np.pi/n)
+        pts[:,3]=np.arange(1, n+1)*(2*np.pi/n)
+        rphi_pts.append(pts)
+
+        r_start = r
+        if verbose:
+            print('r:',r,'...',n,'points')
+            
+    rphi_pts=np.concatenate(rphi_pts)
+    batch = rphi_pts.shape[0]
+    if verbose: print('Total voxels per plane:',batch)
+    
+    pts = np.zeros(shape=(nz,batch,6),dtype=float)
+    if verbose: print('Total points in the volume:',pts.shape[0])
+    for i in range(nz):
+        z = z_start + gap_size
+        #start = i*batch
+        #end   = (i+1)*batch
+        #pts[start:end,0:2]=rphi_pts
+        pts[i,:,0:2] = rphi_pts[:,0:2]
+        pts[i,:,2:4] = rphi_pts[:,2:]
+        pts[i,:,4:] = [z_start, z]
+
+        z_start = z
+        
+    return pts
+
+
 def directions(gap_angle):
     nphi = int(360/gap_angle)
     ntheta = int(180/gap_angle)+1
