@@ -113,19 +113,37 @@ class wcprod_db:
                     raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected maximum pos_id value {pos_max} (should be < {pos_id_ctr})")
                 if dir_id_ctr <= dir_max:
                     raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected maximum dir_id value {dir_max} (should be < {dir_id_ctr})")
-                cmd = f"SELECT MIN(ABS(x)), MAX(ABS(x)), MIN(ABS(y)), MAX(ABS(y)), MIN(z), MAX(z), MIN(theta), MAX(theta), MIN(phi), MAX(phi) FROM cfg_{project}{index}"
-                cur.execute(cmd)
-                xmin, xmax, ymin, ymax, zmin2, zmax2, tmin, tmax, pmin, pmax = cur.fetchall()[0]
-                if xmin < rmin or rmax < xmax:
-                    raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected abs(x) value range {xmin}=>{xmax} (expected {rmin}=>{rmax})")
-                if ymin < rmin or rmax < ymax:
-                    raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected abs(y) value range {ymin}=>{ymax} (expected {rmin}=>{rmax})")
-                if zmin2 < zmin or zmax < zmax2:
-                    raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected z value range {zmin2}=>{zmax2} (expected {zmin}=>{zmax})")
-                if tmin < 0 or 180 < tmax:
-                    raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected theta value range {tmin}=>{tmax} (expected 0=>180)")
-                if pmin < 0 or 360 < pmax:
-                    raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected phi value range {pmin}=>{pmax} (expected 0=>360)")
+                if n_phi_start == 0:
+                    cmd = f"SELECT MIN(ABS(x)), MAX(ABS(x)), MIN(ABS(y)), MAX(ABS(y)), MIN(z), MAX(z), MIN(theta), MAX(theta), MIN(phi), MAX(phi) FROM cfg_{project}{index}"
+                    cur.execute(cmd)
+                    xmin, xmax, ymin, ymax, zmin2, zmax2, tmin, tmax, pmin, pmax = cur.fetchall()[0]
+                    if xmin < rmin or rmax < xmax:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected abs(x) value range {xmin}=>{xmax} (expected {rmin}=>{rmax})")
+                    if ymin < rmin or rmax < ymax:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected abs(y) value range {ymin}=>{ymax} (expected {rmin}=>{rmax})")
+                    if zmin2 < zmin or zmax < zmax2:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected z value range {zmin2}=>{zmax2} (expected {zmin}=>{zmax})")
+                    if tmin < 0 or 180 < tmax:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected theta value range {tmin}=>{tmax} (expected 0=>180)")
+                    if pmin < 0 or 360 < pmax:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected phi value range {pmin}=>{pmax} (expected 0=>360)")
+                else:
+                    cmd = f"SELECT MIN(r0), MAX(r0), MIN(r1), MAX(r1), MIN(phi0), MAX(phi0), MIN(phi1), MAX(phi1), MIN(z0), MAX(z0), MIN(z1), MAX(z1) FROM cfg_{project}{index}"
+                    cur.execute(cmd)
+                    r0min, r0max, r1min, r1max, phi0min, phi0max, phi1min, phi1max, z0min, z0max, z1min, z1max = cur.fetchall()[0]
+                    if r0min < rmin or rmax < r0max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected r0 value range {r0min}=>{r0max} (expected {rmin}=>{rmax})")
+                    if r1min < rmin or rmax < r1max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected r1 value range {r1min}=>{r1max} (expected {rmin}=>{rmax})")
+                    if phi0min < 0 or 360 < phi0max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected phi0 value range {phi0min}=>{phi0max} (expected 0=>360)")
+                    if phi1min < 0 or 360 < phi1max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected phi1 value range {phi1min}=>{phi1max} (expected 0=>360)")
+                    if z0min < zmin or zmax < z0max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected z0 value range {z0min}=>{z0max} (expected {zmin}=>{zmax})")
+                    if z1min < zmin or zmax < z1max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected z1 value range {z1min}=>{z1max} (expected {zmin}=>{zmax})")
+                    
                 
                 # - file table
                 cmd = f"SELECT MIN(config_id),MAX(config_id) FROM file_{project}{index}"
