@@ -28,9 +28,12 @@ class wcprod_project:
         
         self._positions  = positions(self.zmin,self.zmax,self.rmin,self.rmax,self.gap_space)
         self._directions = directions(self.gap_angle)
-        self._voxels     = voxels(self.zmin,self.zmax,self.rmin,self.rmax,self.gap_space,self.n_phi_start)        
-        self._configs    = coordinates(self.positions,self.directions)        
-        
+        self._voxels     = voxels(self.zmin,self.zmax,self.rmin,self.rmax,self.gap_space,self.n_phi_start)
+        if self._n_phi_start == 0:
+            self._configs    = coordinates(self.positions,self.directions)
+        else:
+            self._configs    = volumes(self.voxels)
+            
     def __str__(self):
         msg=f'''
         Project name: {self.project}

@@ -154,3 +154,4 @@ def coordinates(points, dirs):
     coords[:,5]   = mesh[:,0]
     coords[:,6]   = mesh[:,1]
     return coords
+    
