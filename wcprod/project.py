@@ -1,5 +1,5 @@
 import os, yaml
-from .utils import positions, directions, voxels, coordinates
+from .utils import positions, directions, voxels, coordinates, volumes
 
 class wcprod_project:
         

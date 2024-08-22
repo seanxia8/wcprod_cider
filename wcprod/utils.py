@@ -42,11 +42,14 @@ def positions(z_min,z_max,r_min,r_max,gap_size,nphi_initial=0,verbose=False):
     z_start = (z_max - z_min - (nz-1)*gap_size)/2. + z_min
     r_start = (r_max - r_min - (nr-1)*gap_size)/2. + r_min
 
-    base_seg = 2 * np.pi / nphi_initial
-    r_base = r_min + gap_size
+    
+    if nphi_initial > 0:
+        base_seg = 2 * np.pi / nphi_initial
+        r_base = r_min + gap_size
+        
     rphi_pts=[]
     for i in range(nr):
-        if n_phi_start == 0:
+        if nphi_initial == 0:
             r = r_start + i * gap_size
             if (2*np.pi*r) < 2*gap_size:
                 continue
@@ -174,8 +177,8 @@ def volumes(voxels):
 
     vols = np.zeros(shape=(voxels.shape[0] * voxels.shape[1],8),dtype=float)
     vols[:,0:6] = voxels[:,:,0:6].reshape(-1,6)
-    vols[:,7]  = mesh[:,0]
-    vols[:,8]  = mesh[:,1]
+    vols[:,6]  = mesh[:,0]
+    vols[:,7]  = mesh[:,1]
 
     return vols
     
