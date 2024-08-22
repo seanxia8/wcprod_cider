@@ -32,8 +32,7 @@ class wcprod_project:
             self._configs    = coordinates(self.positions,self.directions)
         else:
             self._voxels, self._positions = voxels(self.zmin,self.zmax,self.rmin,self.rmax,self.gap_space,self.n_phi_start)
-            nz = int((self.zmax - self.zmin)/self.gap_space)+1
-            self._configs    = volumes(self.voxels)
+            self._configs = volumes(self.voxels)
             
     def __str__(self):
         msg=f'''

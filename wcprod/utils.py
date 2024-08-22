@@ -100,6 +100,8 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
     r_base = r_min + gap_size
     for i in range(nr):
         r = r_start + gap_size
+        if r > r_max:
+            break
         new_seg = base_seg * (r_base**2 - r_min**2) / (r**2 - r_start**2)
         n = int((2 * np.pi) / new_seg + 0.5)
         
@@ -124,18 +126,20 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
     if verbose: print('Total points in the volume:', len(vox))
     for i in range(nz):
         z = z_start + gap_size
+        if z > z_max:
+            break
         start = i*batch
         end   = (i+1)*batch
         vox[start:end,0:2] = rphi_pts[:,0:2]
         vox[start:end,2:4] = rphi_pts[:,2:]
-        vox[start:end,4:] = [z_start, z]
+        vox[start:end,4:6] = [z_start, z]        
 
         pts[start:end, 0] = 0.5*(rphi_pts[:,0]+rphi_pts[:,1]) * np.cos(0.5*(rphi_pts[:,2]+rphi_pts[:,3]))
         pts[start:end, 1] = 0.5*(rphi_pts[:,0]+rphi_pts[:,1]) * np.sin(0.5*(rphi_pts[:,2]+rphi_pts[:,3]))
         pts[start:end, 2] = 0.5*(z + z_start)
 
         z_start = z
-        
+
     return vox, pts
 
 

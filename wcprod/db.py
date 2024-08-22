@@ -213,9 +213,9 @@ class wcprod_db:
 
             p._positions  = self.list_positions(project)[:,0:3]
             p._directions = self.list_directions(project)[:,0:2]
-            p._voxels = self.list_voxels(project)
+            p._voxels = self.list_voxels(project)[:,0:6]
 
-            from wcprod.utils import coordinates
+            from wcprod.utils import coordinates, volumes
             if p._n_phi_start == 0:
                 p._configs = coordinates(p.positions,p.directions)
             else:
@@ -360,9 +360,10 @@ class wcprod_db:
         Returns
         -------
         dict
-            Contains config/table IDs, (x,y,z,theta,phi), and the number of files produced so far
+            Contains config/table IDs, (x,y,z,theta,phi)-or-(r0,r1,phi0,phi1,z0,z1), and the number of files produced so far
         """
-        max_photons = self.get_project(project).num_photons
+        p = self.get_project(project)
+        max_photons = p.num_photons
         with closing(self._conn.cursor()) as cur:
             table_id = -1
             if not prioritize:
@@ -375,8 +376,13 @@ class wcprod_db:
                     print("No result to be prioritized: the production is finished.")
                     return None
                 table_id = res[0][0]
-            
-            cmd = f"SELECT config_id,x,y,z,theta,phi,file_ctr FROM cfg_{project}{table_id} WHERE photon_ctr < {max_photons}"
+            if p._n_phi_start == 0:
+                cmd = f"SELECT config_id,x,y,z,theta,phi,file_ctr FROM cfg_{project}{table_id} WHERE photon_ctr < {max_photons}"
+        
+            else:
+                cmd = f"SELECT config_id,r0,r1,phi0,phi1,z0,z1,file_ctr FROM cfg_{project}{table_id} WHERE photon_ctr < {max_photons}"
+
+                
             if prioritize:
                 cmd += f" ORDER BY photon_ctr ASC"
             if size>0:
@@ -387,12 +393,17 @@ class wcprod_db:
             seed = round(time.time()*1.e6) % (2**32)
             np.random.seed(seed)
             res = res[int(np.random.random()*len(res))]
-        
-            return dict(config_id=res[0],table_id=table_id,
-                x=res[1],y=res[2],z=res[3],theta=res[4],phi=res[5],
-                file_ctr=res[6],
+
+            if p._n_phi_start == 0:                
+                return dict(config_id=res[0],table_id=table_id,
+                            x=res[1],y=res[2],z=res[3],theta=res[4],phi=res[5],
+                            file_ctr=res[6],
                 )
-        
+            else:
+                return dict(config_id=res[0],table_id=table_id,
+                            r0=res[1],r1=res[2],phi0=res[3],phi1=res[4],z0=res[5],z1=res[6],
+                            file_ctr=res[7],
+                            )
 
     def lock_table(self,project:str,table_id:int=None):
         """Lock tables with the specified table ID
