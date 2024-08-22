@@ -33,7 +33,7 @@ def get_config(name):
     print('No data found for config name:',name)
     raise NotImplementedError
 
-def positions(z_min,z_max,r_min,r_max,gap_size,verbose=False):
+def positions(z_min,z_max,r_min,r_max,gap_size,nphi_initial=0,verbose=False):
     if r_min < 0 or r_max <= r_min:
         print('r_min must be positive and r_max must be larger than r_min')
         raise ValueError
@@ -42,15 +42,24 @@ def positions(z_min,z_max,r_min,r_max,gap_size,verbose=False):
     z_start = (z_max - z_min - (nz-1)*gap_size)/2. + z_min
     r_start = (r_max - r_min - (nr-1)*gap_size)/2. + r_min
 
+    base_seg = 2 * np.pi / nphi_initial
+    r_base = r_min + gap_size
     rphi_pts=[]
     for i in range(nr):
-        r = r_start + i*gap_size
-        if (2*np.pi*r) < 2*gap_size:
-            continue
-        n = int((2 * np.pi * r)/gap_size)
+        if n_phi_start == 0:
+            r = r_start + i * gap_size
+            if (2*np.pi*r) < 2*gap_size:
+                continue
+            n = int((2 * np.pi * r)/gap_size)
+        else:
+            r = r_start + gap
+            new_seg = base_seg * (r_base ** 2 - r_min ** 2) / (r ** 2 - r_start ** 2)
+            n = int((2 * np.pi) / new_seg + 0.5)
+
         pts = np.zeros(shape=(n,2),dtype=float)
         pts[:,0]=r
         pts[:,1]=np.arange(n)*(2*np.pi/n)
+
         rphi_pts.append(pts)
         if verbose:
             print('r:',r,'...',n,'points')
@@ -84,8 +93,6 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
     nr = int((r_max - r_min)/gap_size)+1
     z_start = z_min
     r_start = r_min
-    #z_start = (z_max - z_min - (nz-1)*gap_size)/2. + z_min
-    #r_start = (r_max - r_min - (nr-1)*gap_size)/2. + r_min
 
     rphi_pts=[]
     base_seg = 2 * np.pi / nphi_initial
@@ -129,7 +136,10 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
     return pts
 
 
-def directions(gap_angle):
+def directions(gap_angle, nphi_initial=0):
+    if nphi_initial == 0:
+        return np.array([[0,0]])
+
     nphi = int(360/gap_angle)
     ntheta = int(180/gap_angle)+1
     
