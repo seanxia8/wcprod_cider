@@ -154,4 +154,18 @@ def coordinates(points, dirs):
     coords[:,5]   = mesh[:,0]
     coords[:,6]   = mesh[:,1]
     return coords
+
+def volumes(voxels):
+
+    idx_z = np.arange(voxels.shape[0])
+    idx_rphi = np.arange(voxels.shape[1])
+    mesh = np.meshgrid(idx_z,idx_rphi)
+    mesh = np.column_stack([mesh[0].flatten(),mesh[1].flatten()])
+
+    vols = np.zeros(shape=(voxels.shape[0] * voxels.shape[1],8),dtype=float)
+    vols[:,0:6] = voxels[:,:,0:6].reshape(-1,6)
+    vols[:,7]  = mesh[:,0]
+    vols[:,8]  = mesh[:,1]
+
+    return vols
     
