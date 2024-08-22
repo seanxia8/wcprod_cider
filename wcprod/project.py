@@ -109,7 +109,7 @@ class wcprod_project:
     def draw_vox_plane(self):
         import plotly.graph_objects as go
         import numpy as np
-        vox = self.voxels[0]
+        vox = self.voxels[np.where(voxels[:,4]==0)]
         x_coords = [ [vox[i,0]*np.cos(vox[i,2]), vox[i,1]*np.cos(vox[i,2]), vox[i,1]*np.cos(vox[i,3]), vox[i,0]*np.cos(vox[i,3])] for i in range(len(vox))]
         y_coords = [ [vox[i,0]*np.sin(vox[i,2]), vox[i,1]*np.sin(vox[i,2]), vox[i,1]*np.sin(vox[i,3]), vox[i,0]*np.sin(vox[i,3])] for i in range(len(vox))]
 

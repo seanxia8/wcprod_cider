@@ -655,8 +655,8 @@ class wcprod_db:
                                 )
             )
             df.to_sql(f"geo_{project}",self._conn,if_exists='append',index=False)
-            df = pd.DataFrame(dict(geo_type=np.full(p.voxels.shape[0]*p.voxels.shape[1], 2, dtype=int),
-                                   geo_id=np.arange(p.voxels.shape[0]*p.voxels.shape[1], dtype=int),
+            df = pd.DataFrame(dict(geo_type=np.full(len(voxels), 2, dtype=int),
+                                   geo_id=np.arange(len(voxels), dtype=int),
                                    val0=p.voxels[:, 0],
                                    val1=p.voxels[:, 1],
                                    val2=p.voxels[:, 2],

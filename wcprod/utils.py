@@ -123,16 +123,15 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
     batch = rphi_pts.shape[0]
     if verbose: print('Total voxels per plane:',batch)
     
-    pts = np.zeros(shape=(nz,batch,6),dtype=float)
+    pts = np.zeros(shape=(nz*batch,6),dtype=float)
     if verbose: print('Total points in the volume:',pts.shape[0])
     for i in range(nz):
         z = z_start + gap_size
-        #start = i*batch
-        #end   = (i+1)*batch
-        #pts[start:end,0:2]=rphi_pts
-        pts[i,:,0:2] = rphi_pts[:,0:2]
-        pts[i,:,2:4] = rphi_pts[:,2:]
-        pts[i,:,4:] = [z_start, z]
+        start = i*batch
+        end   = (i+1)*batch
+        pts[start:end,0:2] = rphi_pts[:,0:2]
+        pts[start:end,2:4] = rphi_pts[:,2:]
+        pts[stard:end,4:] = [z_start, z]
 
         z_start = z
         
@@ -175,7 +174,7 @@ def volumes(voxels):
     mesh = np.meshgrid(idx_z,idx_rphi)
     mesh = np.column_stack([mesh[0].flatten(),mesh[1].flatten()])
 
-    vols = np.zeros(shape=(voxels.shape[0] * voxels.shape[1],8),dtype=float)
+    vols = np.zeros(shape=(len(voxels),8),dtype=float)
     vols[:,0:6] = voxels[:,:,0:6].reshape(-1,6)
     vols[:,6]  = mesh[:,0]
     vols[:,7]  = mesh[:,1]
