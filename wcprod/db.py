@@ -69,11 +69,16 @@ class wcprod_db:
             cmd = f"SELECT COUNT(*) FROM geo_{project} WHERE geo_type=1"
             cur.execute(cmd)
             dir_id_ctr = cur.fetchall()[0][0]
-            cmd = f"SELECT COUNT(*) FROM geo_{project} WHERE geo_type>1"
+            cmd = f"SELECT COUNT(*) FROM geo_{project} WHERE geo_type=2"
+            cur.execute(cmd)
+            vox_id_ctr = cur.fetchall()[0][0]
+            cmd = f"SELECT COUNT(*) FROM geo_{project} WHERE geo_type>2"
             cur.execute(cmd)
             zero_ctr = cur.fetchall()[0][0]            
             if not zero_ctr == 0:
                 raise ProjectIntegrityError(f"Found unexpected geo_type values (must be 0 or 1)")
+            if not vox_id_ctr == num_config:
+                raise ProjectIntegrityError(f"Voxel ID counters ({vox_id_ctr} is inconsistent with the config count {num_config}")
             if not (pos_id_ctr * dir_id_ctr) == num_config:
                 raise ProjectIntegrityError(f"Position and direction ID counters ({pos_id_ctr} and {dir_id_ctr}) are inconsistent with the config count {num_config}")
             # - map table
@@ -655,8 +660,8 @@ class wcprod_db:
                                 )
             )
             df.to_sql(f"geo_{project}",self._conn,if_exists='append',index=False)
-            df = pd.DataFrame(dict(geo_type=np.full(len(voxels), 2, dtype=int),
-                                   geo_id=np.arange(len(voxels), dtype=int),
+            df = pd.DataFrame(dict(geo_type=np.full(len(p.voxels), 2, dtype=int),
+                                   geo_id=np.arange(len(p.voxels), dtype=int),
                                    val0=p.voxels[:, 0],
                                    val1=p.voxels[:, 1],
                                    val2=p.voxels[:, 2],
@@ -688,8 +693,8 @@ class wcprod_db:
                                            r0=coords[start:end, 0], r1=coords[start:end, 1],
                                            phi0=coords[start:end, 2], phi1=coords[start:end,3],
                                            z0=coords[start:end, 4], z1=coords[start:end,5],
-                                           z_id=coords[start:end, 6].astype(int),
-                                           rphi_id=coords[start:end, 7].astype(int),
+                                           pos_id=coords[start:end, 6].astype(int),
+                                           dir_id=np.zeros(shape=(end-start), dtype=int),
                                            file_ctr=np.zeros(shape=(end - start), dtype=int),
                                            photon_ctr=np.zeros(shape=(end - start), dtype=int),
                                            )

@@ -24,14 +24,15 @@ class wcprod_project:
         self._gap_space = float(cfg['gap_space'])
         self._gap_angle = float(cfg['gap_angle'])
         self._n_phi_start = int(cfg.get('n_phi_start', 0))
-        self._num_photons = int(cfg['num_photons'])
-        
+        self._num_photons = int(cfg['num_photons'])        
         self._positions  = positions(self.zmin,self.zmax,self.rmin,self.rmax,self.gap_space)
         self._directions = directions(self.gap_angle)
-        self._voxels     = voxels(self.zmin,self.zmax,self.rmin,self.rmax,self.gap_space,self.n_phi_start)
+        
         if self._n_phi_start == 0:
             self._configs    = coordinates(self.positions,self.directions)
         else:
+            self._voxels, self._positions = voxels(self.zmin,self.zmax,self.rmin,self.rmax,self.gap_space,self.n_phi_start)
+            nz = int((self.zmax - self.zmin)/self.gap_space)+1
             self._configs    = volumes(self.voxels)
             
     def __str__(self):
@@ -109,7 +110,7 @@ class wcprod_project:
     def draw_vox_plane(self):
         import plotly.graph_objects as go
         import numpy as np
-        vox = self.voxels[np.where(voxels[:,4]==0)]
+        vox = self.voxels[np.where(self.voxels[:,4]==0)]
         x_coords = [ [vox[i,0]*np.cos(vox[i,2]), vox[i,1]*np.cos(vox[i,2]), vox[i,1]*np.cos(vox[i,3]), vox[i,0]*np.cos(vox[i,3])] for i in range(len(vox))]
         y_coords = [ [vox[i,0]*np.sin(vox[i,2]), vox[i,1]*np.sin(vox[i,2]), vox[i,1]*np.sin(vox[i,3]), vox[i,0]*np.sin(vox[i,3])] for i in range(len(vox))]
 

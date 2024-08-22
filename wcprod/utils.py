@@ -43,26 +43,24 @@ def positions(z_min,z_max,r_min,r_max,gap_size,nphi_initial=0,verbose=False):
     r_start = (r_max - r_min - (nr-1)*gap_size)/2. + r_min
 
     
-    if nphi_initial > 0:
-        base_seg = 2 * np.pi / nphi_initial
-        r_base = r_min + gap_size
+    #if nphi_initial > 0:
+    #    base_seg = 2 * np.pi / nphi_initial
+    #    r_base = r_min + gap_size
         
     rphi_pts=[]
     for i in range(nr):
-        if nphi_initial == 0:
-            r = r_start + i * gap_size
-            if (2*np.pi*r) < 2*gap_size:
-                continue
-            n = int((2 * np.pi * r)/gap_size)
-        else:
-            r = r_start + gap
-            new_seg = base_seg * (r_base ** 2 - r_min ** 2) / (r ** 2 - r_start ** 2)
-            n = int((2 * np.pi) / new_seg + 0.5)
-
+        #if nphi_initial == 0:
+        r = r_start + i * gap_size
+        if (2*np.pi*r) < 2*gap_size:
+            continue
+        n = int((2 * np.pi * r)/gap_size)
+        #else:
+        #r = r_start + gap
+        #new_seg = base_seg * (r_base ** 2 - r_min ** 2) / (r ** 2 - r_start ** 2)
+        #n = int((2 * np.pi) / new_seg + 0.5)
         pts = np.zeros(shape=(n,2),dtype=float)
         pts[:,0]=r
         pts[:,1]=np.arange(n)*(2*np.pi/n)
-
         rphi_pts.append(pts)
         if verbose:
             print('r:',r,'...',n,'points')
@@ -102,9 +100,6 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
     r_base = r_min + gap_size
     for i in range(nr):
         r = r_start + gap_size
-        #if (2*np.pi*r) < 2*gap_size:
-        #    continue
-        # ensure eqivolume voxels
         new_seg = base_seg * (r_base**2 - r_min**2) / (r**2 - r_start**2)
         n = int((2 * np.pi) / new_seg + 0.5)
         
@@ -123,19 +118,25 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
     batch = rphi_pts.shape[0]
     if verbose: print('Total voxels per plane:',batch)
     
-    pts = np.zeros(shape=(nz*batch,6),dtype=float)
-    if verbose: print('Total points in the volume:',pts.shape[0])
+    vox = np.zeros(shape=(nz*batch,6),dtype=float)
+    pts = np.zeros(shape=(nz*batch,3),dtype=float)
+    
+    if verbose: print('Total points in the volume:', len(vox))
     for i in range(nz):
         z = z_start + gap_size
         start = i*batch
         end   = (i+1)*batch
-        pts[start:end,0:2] = rphi_pts[:,0:2]
-        pts[start:end,2:4] = rphi_pts[:,2:]
-        pts[stard:end,4:] = [z_start, z]
+        vox[start:end,0:2] = rphi_pts[:,0:2]
+        vox[start:end,2:4] = rphi_pts[:,2:]
+        vox[start:end,4:] = [z_start, z]
+
+        pts[start:end, 0] = 0.5*(rphi_pts[:,0]+rphi_pts[:,1]) * np.cos(0.5*(rphi_pts[:,2]+rphi_pts[:,3]))
+        pts[start:end, 1] = 0.5*(rphi_pts[:,0]+rphi_pts[:,1]) * np.sin(0.5*(rphi_pts[:,2]+rphi_pts[:,3]))
+        pts[start:end, 2] = 0.5*(z + z_start)
 
         z_start = z
         
-    return pts
+    return vox, pts
 
 
 def directions(gap_angle, nphi_initial=0):
@@ -169,15 +170,11 @@ def coordinates(points, dirs):
 
 def volumes(voxels):
 
-    idx_z = np.arange(voxels.shape[0])
-    idx_rphi = np.arange(voxels.shape[1])
-    mesh = np.meshgrid(idx_z,idx_rphi)
-    mesh = np.column_stack([mesh[0].flatten(),mesh[1].flatten()])
+    idx = np.arange(len(voxels))
 
-    vols = np.zeros(shape=(len(voxels),8),dtype=float)
-    vols[:,0:6] = voxels[:,:,0:6].reshape(-1,6)
-    vols[:,6]  = mesh[:,0]
-    vols[:,7]  = mesh[:,1]
+    vols = np.zeros(shape=(len(voxels),7),dtype=float)
+    vols[:,0:6] = voxels
+    vols[:,6]   = idx
 
     return vols
     
