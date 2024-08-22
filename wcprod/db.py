@@ -638,34 +638,36 @@ class wcprod_db:
             
             # Create a geometry table
             print('Creating a geometry table')
-            cmd = f"CREATE TABLE geo_{project} (geo_type INT, geo_id INT, val0 FLOAT, val1 FLOAT, val2 FLOAT, val3 FLOAT, val4 FLOAT, val5 FLOAT)"
-            cur.execute(cmd)
-            df=pd.DataFrame(dict(geo_type=np.zeros(len(p.positions),dtype=int),
-                                 geo_id=np.arange(len(p.positions),dtype=int),
-                                 val0=p.positions[:,0],
-                                 val1=p.positions[:,1],
-                                 val2=p.positions[:,2],
+            if p.n_phi_start == 0:
+                cmd = f"CREATE TABLE geo_{project} (geo_type INT, geo_id INT, val0 FLOAT, val1 FLOAT, val2 FLOAT, val3 FLOAT, val4 FLOAT, val5 FLOAT)"
+                cur.execute(cmd)
+                df=pd.DataFrame(dict(geo_type=np.zeros(len(p.positions),dtype=int),
+                                     geo_id=np.arange(len(p.positions),dtype=int),
+                                     val0=p.positions[:,0],
+                                     val1=p.positions[:,1],
+                                     val2=p.positions[:,2],
+                                    )
                                 )
-                           )
-            df.to_sql(f"geo_{project}",self._conn,if_exists='append',index=False)
-            df=pd.DataFrame(dict(geo_type=np.ones(len(p.directions),dtype=int),
-                                 geo_id=np.arange(len(p.directions),dtype=int),
-                                 val0=p.directions[:,0],
-                                 val1=p.directions[:,1],
-                                )
-                           )
-            df.to_sql(f"geo_{project}",self._conn,if_exists='append',index=False)
-            df = pd.DataFrame(dict(geo_type=np.full(p.voxels.shape[0]*p.voxels.shape[1], 2, dtype=int),
-                                   geo_id=np.arange(p.voxels.shape[0]*p.voxels.shape[1], dtype=int),
-                                   val0=p.voxels[:, 0],
-                                   val1=p.voxels[:, 1],
-                                   val2=p.voxels[:, 2],
-                                   val0=p.voxels[:, 3],
-                                   val1=p.voxels[:, 4],
-                                   val2=p.voxels[:, 5],
-                                   )
-                              )
-            df.to_sql(f"geo_{project}", self._conn, if_exists='append', index=False)
+                df.to_sql(f"geo_{project}",self._conn,if_exists='append',index=False)
+                df=pd.DataFrame(dict(geo_type=np.ones(len(p.directions),dtype=int),
+                                     geo_id=np.arange(len(p.directions),dtype=int),
+                                     val0=p.directions[:,0],
+                                     val1=p.directions[:,1],
+                                    )
+                               )
+                df.to_sql(f"geo_{project}",self._conn,if_exists='append',index=False)
+            else:
+                df = pd.DataFrame(dict(geo_type=np.full(p.voxels.shape[0]*p.voxels.shape[1], 2, dtype=int),
+                                       geo_id=np.arange(p.voxels.shape[0]*p.voxels.shape[1], dtype=int),
+                                       val0=p.voxels[:, 0],
+                                       val1=p.voxels[:, 1],
+                                       val2=p.voxels[:, 2],
+                                       val0=p.voxels[:, 3],
+                                       val1=p.voxels[:, 4],
+                                       val2=p.voxels[:, 5],
+                                      )
+                                 )
+                df.to_sql(f"geo_{project}", self._conn, if_exists='append', index=False)
 
             # Create a configuration table
             print(f'Creating configuration and file tables: {num_tables} tables covering ({len(p.configs)} entries, can take time...)')
