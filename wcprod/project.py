@@ -110,8 +110,8 @@ class wcprod_project:
         import plotly.graph_objects as go
         import numpy as np
         vox = self.voxels[np.where(self.voxels[:,4]==0)]
-        x_coords = [ [vox[i,0]*np.cos(vox[i,2]*180./np.pi), vox[i,1]*np.cos(vox[i,2]*180./np.pi), vox[i,1]*np.cos(vox[i,3]*180./np.pi), vox[i,0]*np.cos(vox[i,3]*180./np.pi)] for i in range(len(vox))]
-        y_coords = [ [vox[i,0]*np.sin(vox[i,2]*180./np.pi), vox[i,1]*np.sin(vox[i,2]*180./np.pi), vox[i,1]*np.sin(vox[i,3]*180./np.pi), vox[i,0]*np.sin(vox[i,3]*180./np.pi)] for i in range(len(vox))]
+        x_coords = [ [vox[i,0]*np.cos(vox[i,2]*np.pi/180.), vox[i,1]*np.cos(vox[i,2]*np.pi/180.), vox[i,1]*np.cos(vox[i,3]*np.pi/180.), vox[i,0]*np.cos(vox[i,3]*np.pi/180.)] for i in range(len(vox))]
+        y_coords = [ [vox[i,0]*np.sin(vox[i,2]*np.pi/180.), vox[i,1]*np.sin(vox[i,2]*np.pi/180.), vox[i,1]*np.sin(vox[i,3]*np.pi/180.), vox[i,0]*np.sin(vox[i,3]*np.pi/180.)] for i in range(len(vox))]
 
         fig = go.Figure()
 
