@@ -33,7 +33,7 @@ class wcprod_db:
             if len(result) < 1:
                 cmd  = "CREATE TABLE project "
                 cmd += " (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, rmin FLOAT, rmax FLOAT, zmin FLOAT, zmax FLOAT,"
-                cmd += " gap_space FLOAT, gap_angle FLOAT, num_config INT, num_tables INT, num_photons INT)"
+                cmd += " gap_space FLOAT, gap_angle FLOAT, n_phi_start INT, num_config INT, num_tables INT, num_photons INT)"
                 cur.execute(cmd)
     
     def check_integrity(self,project:str):
@@ -52,14 +52,14 @@ class wcprod_db:
             if not self.exist_table("project"):
                 raise TableNotFoundError("The 'project' table not found (this may not be the database for wcprod_db)")
             # - project exists in the project table
-            cmd = f"SELECT rmin, rmax, zmin, zmax, gap_space, gap_angle, num_config, num_tables, num_photons FROM project WHERE name = '{project}'"
+            cmd = f"SELECT rmin, rmax, zmin, zmax, gap_space, gap_angle, n_phi_start, num_config, num_tables, num_photons FROM project WHERE name = '{project}'"
             cur.execute(cmd)
             res = cur.fetchall()
             if len(res) < 1:
                 raise ProjectNotFoundError(f"Project '{project}' not found in the project table")
             if len(res) > 1:
                 raise ProjectIntegrityError(f"Found more than 1 entry with the name '{project}' in the project table")
-            rmin,rmax,zmin,zmax,gap_space,gap_angle,num_config,num_tables,num_photons = res[0]
+            rmin,rmax,zmin,zmax,gap_space,gap_angle,n_phi_start,num_config,num_tables,num_photons = res[0]
             # - geo table
             if not self.exist_table(f"geo_{project}"):
                 raise ProjectIntegrityError(f"Geometry table not found for the project '{project}'")
@@ -69,11 +69,16 @@ class wcprod_db:
             cmd = f"SELECT COUNT(*) FROM geo_{project} WHERE geo_type=1"
             cur.execute(cmd)
             dir_id_ctr = cur.fetchall()[0][0]
-            cmd = f"SELECT COUNT(*) FROM geo_{project} WHERE geo_type>1"
+            cmd = f"SELECT COUNT(*) FROM geo_{project} WHERE geo_type=2"
+            cur.execute(cmd)
+            vox_id_ctr = cur.fetchall()[0][0]
+            cmd = f"SELECT COUNT(*) FROM geo_{project} WHERE geo_type>2"
             cur.execute(cmd)
             zero_ctr = cur.fetchall()[0][0]            
             if not zero_ctr == 0:
                 raise ProjectIntegrityError(f"Found unexpected geo_type values (must be 0 or 1)")
+            if not vox_id_ctr == num_config:
+                raise ProjectIntegrityError(f"Voxel ID counters ({vox_id_ctr} is inconsistent with the config count {num_config}")
             if not (pos_id_ctr * dir_id_ctr) == num_config:
                 raise ProjectIntegrityError(f"Position and direction ID counters ({pos_id_ctr} and {dir_id_ctr}) are inconsistent with the config count {num_config}")
             # - map table
@@ -108,19 +113,37 @@ class wcprod_db:
                     raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected maximum pos_id value {pos_max} (should be < {pos_id_ctr})")
                 if dir_id_ctr <= dir_max:
                     raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected maximum dir_id value {dir_max} (should be < {dir_id_ctr})")
-                cmd = f"SELECT MIN(ABS(x)), MAX(ABS(x)), MIN(ABS(y)), MAX(ABS(y)), MIN(z), MAX(z), MIN(theta), MAX(theta), MIN(phi), MAX(phi) FROM cfg_{project}{index}"
-                cur.execute(cmd)
-                xmin, xmax, ymin, ymax, zmin2, zmax2, tmin, tmax, pmin, pmax = cur.fetchall()[0]
-                if xmin < rmin or rmax < xmax:
-                    raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected abs(x) value range {xmin}=>{xmax} (expected {rmin}=>{rmax})")
-                if ymin < rmin or rmax < ymax:
-                    raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected abs(y) value range {ymin}=>{ymax} (expected {rmin}=>{rmax})")
-                if zmin2 < zmin or zmax < zmax2:
-                    raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected z value range {zmin2}=>{zmax2} (expected {zmin}=>{zmax})")
-                if tmin < 0 or 180 < tmax:
-                    raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected theta value range {tmin}=>{tmax} (expected 0=>180)")
-                if pmin < 0 or 360 < pmax:
-                    raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected phi value range {pmin}=>{pmax} (expected 0=>360)")
+                if n_phi_start == 0:
+                    cmd = f"SELECT MIN(ABS(x)), MAX(ABS(x)), MIN(ABS(y)), MAX(ABS(y)), MIN(z), MAX(z), MIN(theta), MAX(theta), MIN(phi), MAX(phi) FROM cfg_{project}{index}"
+                    cur.execute(cmd)
+                    xmin, xmax, ymin, ymax, zmin2, zmax2, tmin, tmax, pmin, pmax = cur.fetchall()[0]
+                    if xmin < rmin or rmax < xmax:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected abs(x) value range {xmin}=>{xmax} (expected {rmin}=>{rmax})")
+                    if ymin < rmin or rmax < ymax:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected abs(y) value range {ymin}=>{ymax} (expected {rmin}=>{rmax})")
+                    if zmin2 < zmin or zmax < zmax2:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected z value range {zmin2}=>{zmax2} (expected {zmin}=>{zmax})")
+                    if tmin < 0 or 180 < tmax:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected theta value range {tmin}=>{tmax} (expected 0=>180)")
+                    if pmin < 0 or 360 < pmax:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected phi value range {pmin}=>{pmax} (expected 0=>360)")
+                else:
+                    cmd = f"SELECT MIN(r0), MAX(r0), MIN(r1), MAX(r1), MIN(phi0), MAX(phi0), MIN(phi1), MAX(phi1), MIN(z0), MAX(z0), MIN(z1), MAX(z1) FROM cfg_{project}{index}"
+                    cur.execute(cmd)
+                    r0min, r0max, r1min, r1max, phi0min, phi0max, phi1min, phi1max, z0min, z0max, z1min, z1max = cur.fetchall()[0]
+                    if r0min < rmin or rmax < r0max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected r0 value range {r0min}=>{r0max} (expected {rmin}=>{rmax})")
+                    if r1min < rmin or rmax < r1max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected r1 value range {r1min}=>{r1max} (expected {rmin}=>{rmax})")
+                    if phi0min < 0 or 360 < phi0max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected phi0 value range {phi0min}=>{phi0max} (expected 0=>360)")
+                    if phi1min < 0 or 360 < phi1max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected phi1 value range {phi1min}=>{phi1max} (expected 0=>360)")
+                    if z0min < zmin or zmax < z0max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected z0 value range {z0min}=>{z0max} (expected {zmin}=>{zmax})")
+                    if z1min < zmin or zmax < z1max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected z1 value range {z1min}=>{z1max} (expected {zmin}=>{zmax})")
+                    
                 
                 # - file table
                 cmd = f"SELECT MIN(config_id),MAX(config_id) FROM file_{project}{index}"
@@ -179,20 +202,24 @@ class wcprod_db:
 
             p=wcprod_project()
 
-            cur.execute(f"SELECT zmin,zmax,rmin,rmax,gap_space,gap_angle,num_photons FROM project WHERE name='{project}' LIMIT 1")
+            cur.execute(f"SELECT zmin,zmax,rmin,rmax,gap_space,gap_angle,n_phi_start,num_photons FROM project WHERE name='{project}' LIMIT 1")
             res=cur.fetchall()
             if len(res)<1:
                 return None
             res=res[0]
             p._project = project
             p._zmin, p._zmax, p._rmin, p._rmax = res[0:4]
-            p._gap_space, p._gap_angle, p._num_photons = res[4:]
+            p._gap_space, p._gap_angle, p._n_phi_start, p._num_photons = res[4:]
 
             p._positions  = self.list_positions(project)[:,0:3]
             p._directions = self.list_directions(project)[:,0:2]
+            p._voxels = self.list_voxels(project)[:,0:6]
 
-            from wcprod.utils import coordinates
-            p._configs = coordinates(p.positions,p.directions)
+            from wcprod.utils import coordinates, volumes
+            if p._n_phi_start == 0:
+                p._configs = coordinates(p.positions,p.directions)
+            else:
+                p._configs = volumes(p.voxels)
 
             return p
     
@@ -285,7 +312,33 @@ class wcprod_db:
                 cmd += f"AND geo_id={dir_id} "
             cur.execute(cmd)
             return np.array(cur.fetchall()).astype(float)
-        
+
+    def list_voxels(self,project:str,vox_id:int=None):
+        """List the voxels used for the data production
+
+        Retrieve vertices of the voxel volume to be sampled for the specified project.
+        If vox_id is provided, returns the voxel vertices to this key.
+
+        Parameters
+        ----------
+        project : str
+            The name of a project to access in the database
+
+        vox_id : int (optional)
+            The voxel ID. If provided, the return is a single voxel with 6 vertices R,Phi,Z
+
+        Returns
+        -------
+        ndarray
+            Shape (N,6) where N is the number of voxels
+        """
+        with closing(self._conn.cursor()) as cur:
+            cmd = f"SELECT val0,val1,val2,val3,val4,val5,geo_id FROM geo_{project} WHERE geo_type = 2 "
+            if vox_id:
+                cmd += f"AND geo_id={vox_id} "
+            cur.execute(cmd)
+            return np.array(cur.fetchall()).astype(float)
+
     
     def get_random_config(self,project:str,prioritize:bool=True,size:int=1000):
         """Retrieve a job configuration to run in the production
@@ -307,9 +360,10 @@ class wcprod_db:
         Returns
         -------
         dict
-            Contains config/table IDs, (x,y,z,theta,phi), and the number of files produced so far
+            Contains config/table IDs, (x,y,z,theta,phi)-or-(r0,r1,phi0,phi1,z0,z1), and the number of files produced so far
         """
-        max_photons = self.get_project(project).num_photons
+        p = self.get_project(project)
+        max_photons = p.num_photons
         with closing(self._conn.cursor()) as cur:
             table_id = -1
             if not prioritize:
@@ -322,8 +376,13 @@ class wcprod_db:
                     print("No result to be prioritized: the production is finished.")
                     return None
                 table_id = res[0][0]
-            
-            cmd = f"SELECT config_id,x,y,z,theta,phi,file_ctr FROM cfg_{project}{table_id} WHERE photon_ctr < {max_photons}"
+            if p._n_phi_start == 0:
+                cmd = f"SELECT config_id,x,y,z,theta,phi,file_ctr FROM cfg_{project}{table_id} WHERE photon_ctr < {max_photons}"
+        
+            else:
+                cmd = f"SELECT config_id,r0,r1,phi0,phi1,z0,z1,file_ctr FROM cfg_{project}{table_id} WHERE photon_ctr < {max_photons}"
+
+                
             if prioritize:
                 cmd += f" ORDER BY photon_ctr ASC"
             if size>0:
@@ -334,12 +393,17 @@ class wcprod_db:
             seed = round(time.time()*1.e6) % (2**32)
             np.random.seed(seed)
             res = res[int(np.random.random()*len(res))]
-        
-            return dict(config_id=res[0],table_id=table_id,
-                x=res[1],y=res[2],z=res[3],theta=res[4],phi=res[5],
-                file_ctr=res[6],
+
+            if p._n_phi_start == 0:                
+                return dict(config_id=res[0],table_id=table_id,
+                            x=res[1],y=res[2],z=res[3],theta=res[4],phi=res[5],
+                            file_ctr=res[6],
                 )
-        
+            else:
+                return dict(config_id=res[0],table_id=table_id,
+                            r0=res[1],r1=res[2],phi0=res[3],phi1=res[4],z0=res[5],z1=res[6],
+                            file_ctr=res[7],
+                            )
 
     def lock_table(self,project:str,table_id:int=None):
         """Lock tables with the specified table ID
@@ -596,8 +660,8 @@ class wcprod_db:
             
             # Register the project
             print('Registering project',project)
-            cmd = f"INSERT INTO project (name, rmin, rmax, zmin, zmax, gap_space, gap_angle, num_config, num_tables, num_photons)"
-            cmd += f" VALUES ('{p.project}', {p.rmin}, {p.rmax}, {p.zmin}, {p.zmax}, {p.gap_space}, {p.gap_angle}, {len(p.configs)}, {num_tables}, {p.num_photons})"
+            cmd = f"INSERT INTO project (name, rmin, rmax, zmin, zmax, gap_space, gap_angle, n_phi_start, num_config, num_tables, num_photons)"
+            cmd += f" VALUES ('{p.project}', {p.rmin}, {p.rmax}, {p.zmin}, {p.zmax}, {p.gap_space}, {p.gap_angle}, {p.n_phi_start}, {len(p.configs)}, {num_tables}, {p.num_photons})"
             #print(cmd)
             cur.execute(cmd)
 
@@ -608,23 +672,34 @@ class wcprod_db:
             
             # Create a geometry table
             print('Creating a geometry table')
-            cmd = f"CREATE TABLE geo_{project} (geo_type INT, geo_id INT, val0 FLOAT, val1 FLOAT, val2 FLOAT)"
+            cmd = f"CREATE TABLE geo_{project} (geo_type INT, geo_id INT, val0 FLOAT, val1 FLOAT, val2 FLOAT, val3 FLOAT, val4 FLOAT, val5 FLOAT)"
             cur.execute(cmd)
             df=pd.DataFrame(dict(geo_type=np.zeros(len(p.positions),dtype=int),
                                  geo_id=np.arange(len(p.positions),dtype=int),
                                  val0=p.positions[:,0],
                                  val1=p.positions[:,1],
                                  val2=p.positions[:,2],
-                                )
-                           )
+                                 )
+            ) 
             df.to_sql(f"geo_{project}",self._conn,if_exists='append',index=False)
             df=pd.DataFrame(dict(geo_type=np.ones(len(p.directions),dtype=int),
                                  geo_id=np.arange(len(p.directions),dtype=int),
                                  val0=p.directions[:,0],
                                  val1=p.directions[:,1],
                                 )
-                           )
+            )
             df.to_sql(f"geo_{project}",self._conn,if_exists='append',index=False)
+            df = pd.DataFrame(dict(geo_type=np.full(len(p.voxels), 2, dtype=int),
+                                   geo_id=np.arange(len(p.voxels), dtype=int),
+                                   val0=p.voxels[:, 0],
+                                   val1=p.voxels[:, 1],
+                                   val2=p.voxels[:, 2],
+                                   val3=p.voxels[:, 3],
+                                   val4=p.voxels[:, 4],
+                                   val5=p.voxels[:, 5],
+                                   )
+            )
+            df.to_sql(f"geo_{project}", self._conn, if_exists='append', index=False)
 
             # Create a configuration table
             print(f'Creating configuration and file tables: {num_tables} tables covering ({len(p.configs)} entries, can take time...)')
@@ -632,15 +707,27 @@ class wcprod_db:
                 start = sum(entries[:table_index])
                 end   = sum(entries[:(table_index+1)])
                 #print(np.arange(start,end).astype(int).shape,np.zeros(shape=(end-start),dtype=int).shape,coords[start:end,5].astype(int).shape,coords[start:end,6].astype(int).shape,coords[start:end,3].shape,coords[:,4].shape)
-                df=pd.DataFrame(dict(config_id=np.arange(start,end).astype(int),
-                                     x=coords[start:end,0],y=coords[start:end,1],z=coords[start:end,2],
-                                     theta=coords[start:end,3],phi=coords[start:end,4],
-                                     pos_id=coords[start:end,5].astype(int),
-                                     dir_id=coords[start:end,6].astype(int),
-                                     file_ctr=np.zeros(shape=(end-start),dtype=int),
-                                     photon_ctr=np.zeros(shape=(end-start),dtype=int),
+                if p.n_phi_start == 0:
+                    df=pd.DataFrame(dict(config_id=np.arange(start,end).astype(int),
+                                         x=coords[start:end,0],y=coords[start:end,1],z=coords[start:end,2],
+                                         theta=coords[start:end,3],phi=coords[start:end,4],
+                                         pos_id=coords[start:end,5].astype(int),
+                                         dir_id=coords[start:end,6].astype(int),
+                                         file_ctr=np.zeros(shape=(end-start),dtype=int),
+                                         photon_ctr=np.zeros(shape=(end-start),dtype=int),
+                                        )
                                     )
-                               )
+                else:
+                    df = pd.DataFrame(dict(config_id=np.arange(start, end).astype(int),
+                                           r0=coords[start:end, 0], r1=coords[start:end, 1],
+                                           phi0=coords[start:end, 2], phi1=coords[start:end,3],
+                                           z0=coords[start:end, 4], z1=coords[start:end,5],
+                                           pos_id=coords[start:end, 6].astype(int),
+                                           dir_id=np.zeros(shape=(end-start), dtype=int),
+                                           file_ctr=np.zeros(shape=(end - start), dtype=int),
+                                           photon_ctr=np.zeros(shape=(end - start), dtype=int),
+                                           )
+                                      )
                 df.to_sql(cfg_tablename+str(table_index),self._conn, index=False)
                 cur.execute(f"ALTER TABLE {cfg_tablename}{table_index} ADD Timestamp DATETIME")
                 current_timestamp = datetime.datetime.now().isoformat(" ",timespec='seconds')
