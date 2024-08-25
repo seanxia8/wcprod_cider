@@ -60,7 +60,7 @@ def positions(z_min,z_max,r_min,r_max,gap_size,nphi_initial=0,verbose=False):
         #n = int((2 * np.pi) / new_seg + 0.5)
         pts = np.zeros(shape=(n,2),dtype=float)
         pts[:,0]=r
-        pts[:,1]=np.arange(n)*(2*np.pi/n)
+        pts[:,1]=np.arange(n)*(360./n)
         rphi_pts.append(pts)
         if verbose:
             print('r:',r,'...',n,'points')
@@ -74,8 +74,8 @@ def positions(z_min,z_max,r_min,r_max,gap_size,nphi_initial=0,verbose=False):
         start = i*batch
         end   = (i+1)*batch
         #pts[start:end,0:2]=rphi_pts
-        pts[start:end,0] = rphi_pts[:,0] * np.cos(rphi_pts[:,1])
-        pts[start:end,1] = rphi_pts[:,0] * np.sin(rphi_pts[:,1])
+        pts[start:end,0] = rphi_pts[:,0] * np.cos(rphi_pts[:,1]*2*np.pi/360.)
+        pts[start:end,1] = rphi_pts[:,0] * np.sin(rphi_pts[:,1]*2*np.pi/360.)
         pts[start:end,2] = z
     return pts
 
@@ -108,8 +108,8 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
         pts = np.zeros(shape=(n,4),dtype=float)
         pts[:,0]=r_start
         pts[:,1]=r
-        pts[:,2]=np.arange(n)*(2*np.pi/n)
-        pts[:,3]=np.arange(1, n+1)*(2*np.pi/n)
+        pts[:,2]=np.arange(n)*(360./n)
+        pts[:,3]=np.arange(1, n+1)*(360./n)
         rphi_pts.append(pts)
 
         r_start = r
@@ -134,8 +134,8 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
         vox[start:end,2:4] = rphi_pts[:,2:]
         vox[start:end,4:6] = [z_start, z]        
 
-        pts[start:end, 0] = 0.5*(rphi_pts[:,0]+rphi_pts[:,1]) * np.cos(0.5*(rphi_pts[:,2]+rphi_pts[:,3]))
-        pts[start:end, 1] = 0.5*(rphi_pts[:,0]+rphi_pts[:,1]) * np.sin(0.5*(rphi_pts[:,2]+rphi_pts[:,3]))
+        pts[start:end, 0] = 0.5*(rphi_pts[:,0]+rphi_pts[:,1]) * np.cos(0.5*(rphi_pts[:,2]+rphi_pts[:,3])*np.pi/180.)
+        pts[start:end, 1] = 0.5*(rphi_pts[:,0]+rphi_pts[:,1]) * np.sin(0.5*(rphi_pts[:,2]+rphi_pts[:,3])*np.pi/180.)
         pts[start:end, 2] = 0.5*(z + z_start)
 
         z_start = z
