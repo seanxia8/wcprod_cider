@@ -3,6 +3,12 @@ import sys,os
 import yaml
 import wcprod
 
+TEMPLATE_WCSIM_RUN='''
+#!/bin/bash
+cd %s
+./scripts/run.sh %s ./build/macros/tuning_parameters.mac
+'''
+
 TEMPLATE='''#!/bin/bash
 #SBATCH --job-name=wcprod
 #SBATCH --nodes=1
@@ -30,6 +36,7 @@ NPhotons: %s
 NEvents:  %s
 Storage:  %s
 ROOT_SETUP: /src/root/install/bin/thisroot.sh
+WCSIM_HOME: %s
 " > setup_job.yaml
 
 echo "job environment dump\n" >> log.txt
@@ -50,7 +57,7 @@ do
  echo "Running Geant4"
  echo `date` && echo `date` >> log.txt  2>&1
  singularity exec %s scp -r /src/WCSim/build/macros ./
- singularity run  %s g4.mac >> log.txt  2>&1
+ singularity exec %s %s ${WORKDIR}/run_wcsim.sh >> log.txt  2>&1
 
  echo
  echo "Running check"
@@ -121,6 +128,7 @@ def parse_config(cfg):
             cmd = cmd + p + ','
 
         cfg['BIND_PATH'] = cmd.rstrip(',')
+        cfg['BIND_PATH'] = cmd.rstrip(',')
     else:
         cfg['BIND_PATH'] = ''
 
@@ -140,6 +148,10 @@ def main():
     if cfg.get('SLURM_NODELIST',False):
         EXTRA_FLAGS += f'#SBATCH --nodelist="{cfg["SLURM_NODELIST"]}"\n'
 
+    script_wcsim = TEMPLATE_WCSIM_RUN % (cfg['WCSIM_HOME'],"${WORKDIR}/g4.mac")
+    with open('run_wcsim.sh','w') as f:
+        f.write(script_wcsim)
+
     script = TEMPLATE % (cfg['SLURM_PARTITION'],
         cfg['SLURM_ACCOUNT'],
         cfg['SLURM_LOG_DIR'],
@@ -156,9 +168,11 @@ def main():
         cfg['WCPROD_NPHOTONS'],
         cfg['WCPROD_NEVENTS'],
         os.path.join(cfg['WCPROD_STORAGE_ROOT'],cfg['WCPROD_PROJECT']),
+        cfg.['WCSIM_HOME'],
         cfg['WCPROD_NLOOPS'],
         cfg['BIND_PATH'],
         cfg['CONTAINER_WCPROD'],
+        cfg['BIND_PATH'],
         cfg['CONTAINER_WCSIM'],
         cfg['CONTAINER_WCSIM'],
         cfg['CONTAINER_WCSIM'],

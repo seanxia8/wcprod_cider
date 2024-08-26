@@ -24,6 +24,7 @@ RUN apt-get -y update && \
 RUN mkdir /app && cd /app && \
     git clone https://github.com/seanxia8/wcprod_cider.git && \
     cd wcprod_cider && \
+    git checkout develop && \
     pip3 --no-cache-dir install .			  
 
 RUN apt-get -y install libspdlog-dev

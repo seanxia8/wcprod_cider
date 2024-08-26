@@ -153,7 +153,7 @@ def main():
 		f.write(contents)
 
 	# Step 2: prepare/verify the storage space
-	unit_K=1000
+	unit_K=100
 	unit_M=unit_K*1000
 	tier1 = int(config_id / unit_M)
 	tier2 = int((config_id - unit_M*tier1) / unit_K)

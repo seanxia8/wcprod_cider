@@ -5,7 +5,7 @@ WCPROD_DB_FILE:      /sdf/home/j/junjie/SIREN/WCProd/wcprod_cider/example_vox_10
 WCPROD_PROJECT:      example_project_vox_10000
 WCPROD_NEVENTS:      10000
 WCPROD_NPHOTONS:     1
-WCPROD_NLOOPS:       5
+WCPROD_NLOOPS:       1
 WCPROD_STORAGE_ROOT: /sdf/home/j/junjie/sdf-data/voxel/v000
 WCPROD_WORK_DIR:     /sdf/home/j/junjie/sdf-data/voxel/v000
 SLURM_LOG_DIR: /sdf/home/j/junjie/sdf-data/voxel/v000/slurm_log
@@ -18,3 +18,4 @@ SLURM_ACCOUNT: neutrino
 SLURM_PARTITION: milano
 SLURM_PREEMPTABLE: True
 SLURM_NODELIST: ''
+WCSIM_HOME: /src/WCSim
