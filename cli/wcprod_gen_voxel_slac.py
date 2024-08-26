@@ -173,7 +173,6 @@ def main():
         cfg['CONTAINER_WCPROD'],
         cfg['BIND_PATH'],                         
         cfg['CONTAINER_WCSIM'],
-        cfg['CONTAINER_WCSIM'],
         cfg['BIND_PATH'],
         cfg['CONTAINER_WCPROD'],
         )
