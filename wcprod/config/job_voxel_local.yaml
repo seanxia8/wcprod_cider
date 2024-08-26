@@ -1,6 +1,6 @@
 BIND_PATH:           /sdf
-CONTAINER_WCSIM:     /sdf/home/j/junjie/sdf-data/sif/wcsim-plus_wcsim.24.08.26.sif
-CONTAINER_WCPROD:    /sdf/home/j/junjie/sdf-data/sif/wcprod_24.08.25.sif
+CONTAINER_WCSIM:     /sdf/home/j/junjie/sdf-data/sif/wcsim-plus_wcsim.24.08.25.sif
+CONTAINER_WCPROD:    /sdf/home/j/junjie/sdf-data/sif/wcprod_24.08.26.sif
 WCPROD_DB_FILE:      /sdf/home/j/junjie/SIREN/WCProd/wcprod_cider/example_vox_10000.db
 WCPROD_PROJECT:      example_project_vox_10000
 WCPROD_NEVENTS:      10000
