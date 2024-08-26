@@ -69,7 +69,7 @@ void %s()
 	TFile *file;
 	file = new TFile("%s","read");
 	if (!file->IsOpen()){
-	  cout << "Error, could not open input file: " << input_file << endl;
+	  cout << "Error, could not open input file: " << file->GetName() << endl;
 	  return -1;
 	}
   
