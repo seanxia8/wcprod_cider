@@ -22,9 +22,9 @@ RUN apt-get -y update && \
     pip3 --no-cache-dir install --upgrade setuptools numpy pyyaml pytest tqdm pandas plotly jupyter
 
 RUN mkdir /app && cd /app && \
-    git clone https://github.com/seanxia8/wcprod_cider.git && \
+    git clone --no-checkout https://github.com/seanxia8/wcprod_cider.git && \
     cd wcprod_cider && \
-    git checkout develop && \
+    git checkout 5eb00fb25ffe0824e78b96d1858501f2c8d771ad && \
     pip3 --no-cache-dir install .			  
 
 RUN apt-get -y install libspdlog-dev
