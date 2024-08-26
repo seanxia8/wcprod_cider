@@ -17,14 +17,18 @@ TEMPLATE_G4='''
 /random/setSeeds                       0 0
 /WCSim/random/seed                     0
 /WCSim/WCgeom                          nuPRISMBeamTest_16cShort_mPMT
+/WCSim/PMT/ReplicaPlacement            false
 /WCSim/Geometry/RotateBarrelHalfTower  true
+/WCSim/PMT/PositionVariation           0 mm
+/WCSim/PMT/PositionFile                data/mPMT_Position_WCTE.txt
+/WCSim/mPMT/PMTtype_inner              PMT3inchR14374_WCTE
 /WCSim/Construct
 /WCSim/PMTQEMethod                     DoNotApplyQE
 /WCSim/PMTCollEff                      off
 /WCSim/SavePi0                         false
 /DAQ/Digitizer                         SKI
-/DAQ/Trigger                           NDigits
-/control/execute                       /src/WCSim/macros/daq.mac
+/DAQ/Trigger                           NoTrigger
+/control/execute                       macros/daq.mac
 /DarkRate/SetDarkRate                  0 kHz
 /DarkRate/SetDarkMode                  1
 /DarkRate/SetDarkHigh                  100000
@@ -37,7 +41,6 @@ TEMPLATE_G4='''
 /mygen/z1_Vox                          %f cm
 /mygen/phi0_Vox                        %f
 /mygen/phi1_Vox                        %f
-/gps/number                            %d
 /Tracking/fractionOpticalPhotonsToDraw 0
 /WCSimIO/RootFile                      %s
 /WCSimIO/SaveRooTracker                0
@@ -134,25 +137,7 @@ def main():
 		print(f"ERROR: project '{project}' not found in the database {dbfile}.")
 		sys.exit(ERROR_PROJECT_NOT_FOUND)
 
-	# Step 1: prepare G4 macro
-	cfg=db.get_random_config(project,prioritize=True,size=1000)
-	config_id = cfg['config_id']
-	file_ctr  = cfg['file_ctr' ]
-	r0 = cfg['r0']
-	r1 = cfg['r1']
-	z0 = cfg['z0']
-	z1 = cfg['z1']
-	phi0 = cfg['phi0']
-	phi1 = cfg['phi1']
-	out_file   = 'out_%s_%09d_%03d.root' % (project,config_id,file_ctr)
-
-	contents = TEMPLATE_G4 % (r0,r1,z0,z1,phi0,phi1,nphotons,out_file,nevents)
-	with open('log.txt','a') as f:	
-		f.write('\n\n'+contents+'\n\n')
-	with open('g4.mac','w') as f:
-		f.write(contents)
-
-	# Step 2: prepare/verify the storage space
+	# Step 1: prepare/verify the storage space
 	unit_K=100
 	unit_M=unit_K*1000
 	tier1 = int(config_id / unit_M)
@@ -165,6 +150,24 @@ def main():
 	except OSError:
 		print(f"Failed to create the storage directory '{storage_path}'")
 		sys.exit(ERROR_STORAGE_CREATION)
+
+	# Step 2: prepare G4 macro
+	cfg=db.get_random_config(project,prioritize=True,size=1000)
+	config_id = cfg['config_id']
+	file_ctr  = cfg['file_ctr' ]
+	r0 = cfg['r0']
+	r1 = cfg['r1']
+	z0 = cfg['z0']
+	z1 = cfg['z1']
+	phi0 = cfg['phi0']
+	phi1 = cfg['phi1']
+	out_file   = '%s/out_%s_%09d_%03d.root' % (storageg_path,project,config_id,file_ctr)
+
+	contents = TEMPLATE_G4 % (r0,r1,z0,z1,phi0,phi1,out_file,nevents)
+	with open('log.txt','a') as f:	
+		f.write('\n\n'+contents+'\n\n')
+	with open('g4.mac','w') as f:
+		f.write(contents)
 
 	# Step 3: store the configuration for the wrapup file
 	wrapup_cfg = dict(DBFile=dbfile,Project=project,ConfigID=config_id,
