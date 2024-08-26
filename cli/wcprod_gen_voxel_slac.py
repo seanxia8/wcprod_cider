@@ -51,12 +51,11 @@ do
  echo "Starting: run counter $i"
  echo "Starting: run counter $i" >> log.txt  2>&1
  echo `date` && echo `date` >> log.txt  2>&1
- singularity exec %s %s ./wcprod_setup_voxel.py setup_job.yaml >> log.txt  2>&1
+ singularity exec %s %s wcprod_setup_voxel.py setup_job.yaml >> log.txt  2>&1
 
  echo
  echo "Running Geant4"
  echo `date` && echo `date` >> log.txt  2>&1
- singularity exec %s scp -r /src/WCSim/build/macros ./
  singularity exec %s %s ${WORKDIR}/run_wcsim.sh >> log.txt  2>&1
 
  echo
@@ -172,8 +171,7 @@ def main():
         cfg['WCPROD_NLOOPS'],
         cfg['BIND_PATH'],
         cfg['CONTAINER_WCPROD'],
-        cfg['BIND_PATH'],
-        cfg['CONTAINER_WCSIM'],
+        cfg['BIND_PATH'],                         
         cfg['CONTAINER_WCSIM'],
         cfg['CONTAINER_WCSIM'],
         cfg['BIND_PATH'],
