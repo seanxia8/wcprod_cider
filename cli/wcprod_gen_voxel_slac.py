@@ -56,7 +56,6 @@ do
  echo
  echo "Running Geant4"
  echo `date` && echo `date` >> log.txt  2>&1
- singularity exec %s scp -r /src/WCSim/build/macros ./
  singularity exec %s %s ${WORKDIR}/run_wcsim.sh >> log.txt  2>&1
 
  echo
@@ -173,7 +172,6 @@ def main():
         cfg['BIND_PATH'],
         cfg['CONTAINER_WCPROD'],
         cfg['BIND_PATH'],
-        cfg['CONTAINER_WCSIM'],
         cfg['CONTAINER_WCSIM'],
         cfg['CONTAINER_WCSIM'],
         cfg['BIND_PATH'],
