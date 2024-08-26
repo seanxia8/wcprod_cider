@@ -137,6 +137,16 @@ def main():
 		print(f"ERROR: project '{project}' not found in the database {dbfile}.")
 		sys.exit(ERROR_PROJECT_NOT_FOUND)
 
+	cfg = db.get_random_config(project, prioritize=True, size=1000)
+	file_ctr = cfg['file_ctr']
+	config_id = cfg['config_id']
+	r0 = cfg['r0']
+	r1 = cfg['r1']
+	z0 = cfg['z0']
+	z1 = cfg['z1']
+	phi0 = cfg['phi0']
+	phi1 = cfg['phi1']
+
 	# Step 1: prepare/verify the storage space
 	unit_K=100
 	unit_M=unit_K*1000
@@ -152,17 +162,7 @@ def main():
 		sys.exit(ERROR_STORAGE_CREATION)
 
 	# Step 2: prepare G4 macro
-	cfg=db.get_random_config(project,prioritize=True,size=1000)
-	config_id = cfg['config_id']
-	file_ctr  = cfg['file_ctr' ]
-	r0 = cfg['r0']
-	r1 = cfg['r1']
-	z0 = cfg['z0']
-	z1 = cfg['z1']
-	phi0 = cfg['phi0']
-	phi1 = cfg['phi1']
 	out_file   = '%s/out_%s_%09d_%03d.root' % (storageg_path,project,config_id,file_ctr)
-
 	contents = TEMPLATE_G4 % (r0,r1,z0,z1,phi0,phi1,out_file,nevents)
 	with open('log.txt','a') as f:	
 		f.write('\n\n'+contents+'\n\n')
