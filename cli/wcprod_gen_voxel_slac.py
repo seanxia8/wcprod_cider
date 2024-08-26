@@ -168,7 +168,7 @@ def main():
         cfg['WCPROD_NPHOTONS'],
         cfg['WCPROD_NEVENTS'],
         os.path.join(cfg['WCPROD_STORAGE_ROOT'],cfg['WCPROD_PROJECT']),
-        cfg.['WCSIM_HOME'],
+        cfg['WCSIM_HOME'],
         cfg['WCPROD_NLOOPS'],
         cfg['BIND_PATH'],
         cfg['CONTAINER_WCPROD'],
