@@ -60,7 +60,7 @@ do
  echo
  echo "Running check"
  echo `date` && echo `date` >> log.txt  2>&1
- singularity exec %s bash wcprod_check.sh >> log.txt  2>&1
+ singularity exec %s %s bash wcprod_check.sh >> log.txt  2>&1
 
  echo
  echo "Wrapping up"
@@ -171,6 +171,8 @@ def main():
         cfg['BIND_PATH'],
         cfg['CONTAINER_WCPROD'],
         cfg['BIND_PATH'],                         
+        cfg['CONTAINER_WCSIM'],
+        cfg['BIND_PATH'],
         cfg['CONTAINER_WCSIM'],
         cfg['BIND_PATH'],
         cfg['CONTAINER_WCPROD'],
