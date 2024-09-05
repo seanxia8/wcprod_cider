@@ -35,10 +35,10 @@ TEMPLATE_G4='''
 /DarkRate/SetDarkLow                   0
 /DarkRate/SetDarkWindow                4000
 /mygen/generator                       voxel
-/mygen/r0_Vox                          %f cm
-/mygen/r1_Vox                          %f cm
-/mygen/z0_Vox                          %f cm
-/mygen/z1_Vox                          %f cm
+/mygen/r0_Vox                          %f mm
+/mygen/r1_Vox                          %f mm
+/mygen/z0_Vox                          %f mm
+/mygen/z1_Vox                          %f mm
 /mygen/phi0_Vox                        %f
 /mygen/phi1_Vox                        %f
 /Tracking/fractionOpticalPhotonsToDraw 0
