@@ -26,7 +26,7 @@ class wcprod_project:
         self._n_phi_start = int(cfg.get('n_phi_start', 0))
         self._num_photons = int(cfg['num_photons'])        
         self._positions  = positions(self.zmin,self.zmax,self.rmin,self.rmax,self.gap_space)
-        self._directions = directions(self.gap_angle)
+        self._directions = directions(self.gap_angle, self.n_phi_start)
         
         if self._n_phi_start == 0:
             self._configs    = coordinates(self.positions,self.directions)
@@ -109,7 +109,7 @@ class wcprod_project:
     def draw_vox_plane(self):
         import plotly.graph_objects as go
         import numpy as np
-        vox = self.voxels[np.where(self.voxels[:,4]==0)]
+        vox = self.voxels[np.where(np.fabs(self.voxels[:,4])<50.)]
         x_coords = [ [vox[i,0]*np.cos(vox[i,2]*np.pi/180.), vox[i,1]*np.cos(vox[i,2]*np.pi/180.), vox[i,1]*np.cos(vox[i,3]*np.pi/180.), vox[i,0]*np.cos(vox[i,3]*np.pi/180.)] for i in range(len(vox))]
         y_coords = [ [vox[i,0]*np.sin(vox[i,2]*np.pi/180.), vox[i,1]*np.sin(vox[i,2]*np.pi/180.), vox[i,1]*np.sin(vox[i,3]*np.pi/180.), vox[i,0]*np.sin(vox[i,3]*np.pi/180.)] for i in range(len(vox))]
 

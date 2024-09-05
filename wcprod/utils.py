@@ -90,8 +90,8 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
         print('To generate voxels, n_phi_start must be positive integer')
         raise ValueError
     
-    nz = round((z_max - z_min)/gap_size)
-    nr = round((r_max - r_min)/gap_size)
+    nz = int((z_max - z_min)/gap_size)+1
+    nr = int((r_max - r_min)/gap_size)+1
     z_start = z_min
     r_start = r_min
 
@@ -100,8 +100,8 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
     r_base = r_min + gap_size
     for i in range(nr):
         r = r_start + gap_size
-        if r > r_max:
-            break
+        if r > r_max + 1.E-6:
+            r = r_max
         new_seg = base_seg * (r_base**2 - r_min**2) / (r**2 - r_start**2)
         n = int((2 * np.pi) / new_seg + 0.5)
         
@@ -127,7 +127,7 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
     for i in range(nz):
         z = z_start + gap_size
         if z > z_max+1.E-6:
-            break
+            z = z_max
         start = i*batch
         end   = (i+1)*batch
         vox[start:end,0:2] = rphi_pts[:,0:2]
