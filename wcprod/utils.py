@@ -90,8 +90,8 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
         print('To generate voxels, n_phi_start must be positive integer')
         raise ValueError
     
-    nz = int((z_max - z_min)/gap_size)+1
-    nr = int((r_max - r_min)/gap_size)+1
+    nz = round((z_max - z_min)/gap_size)
+    nr = round((r_max - r_min)/gap_size)
     z_start = z_min
     r_start = r_min
 
@@ -126,7 +126,7 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
     if verbose: print('Total points in the volume:', len(vox))
     for i in range(nz):
         z = z_start + gap_size
-        if z > z_max:
+        if z > z_max+1.E-6:
             break
         start = i*batch
         end   = (i+1)*batch
@@ -144,7 +144,7 @@ def voxels(z_min,z_max,r_min,r_max,gap_size,nphi_initial,verbose=False):
 
 
 def directions(gap_angle, nphi_initial=0):
-    if nphi_initial == 0:
+    if nphi_initial > 0:
         return np.array([[0,0]])
 
     nphi = int(360/gap_angle)
