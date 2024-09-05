@@ -52,6 +52,7 @@ do
  echo "Starting: run counter $i" >> log.txt  2>&1
  echo `date` && echo `date` >> log.txt  2>&1
  singularity exec %s %s bash -c "wcprod_setup_voxel.py setup_job.yaml" >> log.txt  2>&1
+
  echo
  echo "Running Geant4"
  echo `date` && echo `date` >> log.txt  2>&1
