@@ -3,12 +3,6 @@ import sys,os
 import yaml
 import wcprod
 
-TEMPLATE_WCSIM_RUN='''
-#!/bin/bash
-cd %s
-./scripts/run.sh %s ./build/macros/tuning_parameters.mac
-'''
-
 TEMPLATE='''#!/bin/bash
 #SBATCH --job-name=wcprod
 #SBATCH --nodes=1
@@ -29,19 +23,22 @@ mkdir -p $WORKDIR
 cd $WORKDIR
 
 # Generate a configuration file
-echo "
-DBFile:   %s
-Project:  %s
-NPhotons: %s
-NEvents:  %s
-Storage:  %s
-ROOT_SETUP: /src/root/install/bin/thisroot.sh
-WCSIM_HOME: %s
-" > setup_job.yaml
 
-echo "job environment dump\n" >> log.txt
-echo `printenv` >> log.txt  2>&1
-printenv
+if [ ! -f setup_job.yaml ]; then
+    echo "
+    DBFile:   %s
+    Project:  %s
+    NPhotons: %s
+    NEvents:  %s
+    Storage:  %s
+    ROOT_SETUP: /src/root/install/bin/thisroot.sh
+    WCSIM_HOME: %s
+    WCSIM_ENV: /src/scripts/sourceme.sh
+    " > setup_job.yaml
+fi
+
+#echo "job environment dump\n" >> log.txt
+#echo `printenv` >> log.txt  2>&1
 
 # Execute N times
 for (( i=1;i<=%d;i++ ))
@@ -49,24 +46,23 @@ do
 
  echo
  echo "Starting: run counter $i"
- echo "Starting: run counter $i" >> log.txt  2>&1
- echo `date` && echo `date` >> log.txt  2>&1
- singularity exec %s %s bash -c "wcprod_setup_voxel.py setup_job.yaml" >> log.txt  2>&1
+ singularity exec %s %s bash -c "wcprod_setup_voxel.py setup_job.yaml"  2>&1
 
+ echo `date` && echo `date` >> log.txt  2>&1
  echo
  echo "Running Geant4"
  echo `date` && echo `date` >> log.txt  2>&1
- singularity exec %s %s ${WORKDIR}/run_wcsim.sh >> log.txt  2>&1
+ singularity exec %s %s ./run_wcsim.sh >> log.txt  2>&1
 
  echo
  echo "Running check"
  echo `date` && echo `date` >> log.txt  2>&1
  singularity exec %s %s bash wcprod_check.sh >> log.txt  2>&1
 
- echo
- echo "Wrapping up"
- echo `date` && echo `date` >> log.txt  2>&1
- singularity exec %s %s wcprod_wrapup_shotgun.py wrapup_job.yaml >> log.txt  2>&1
+ #echo
+ #echo "Wrapping up"
+ #echo `date` && echo `date` >> log.txt  2>&1
+ #singularity exec %s %s wcprod_wrapup_shotgun.py wrapup_job.yaml >> log.txt  2>&1
 
  echo
  echo "Finished!" && echo "Finished!" >> log.txt  2>&1
@@ -96,7 +92,7 @@ def parse_config(cfg):
     'SLURM_LOG_DIR','SLURM_TIME','SLURM_MEM',
     'SLURM_ACCOUNT','SLURM_PARTITION','SLURM_PREEMPTABLE',
     'SLURM_NCPU','SLURM_NJOBS_TOTAL','SLURM_NJOBS_CONCURRENT',
-    'CONTAINER_WCSIM','CONTAINER_WCPROD']
+    'CONTAINER_WCSIM','CONTAINER_WCPROD', 'WCSIM_HOME']
 
     for key in keywords:
         if not key in cfg.keys():
@@ -147,9 +143,6 @@ def main():
     if cfg.get('SLURM_NODELIST',False):
         EXTRA_FLAGS += f'#SBATCH --nodelist="{cfg["SLURM_NODELIST"]}"\n'
 
-    script_wcsim = TEMPLATE_WCSIM_RUN % (cfg['WCSIM_HOME'],"${WORKDIR}/g4.mac")
-    with open('run_wcsim.sh','w') as f:
-        f.write(script_wcsim)
 
     script = TEMPLATE % (cfg['SLURM_PARTITION'],
         cfg['SLURM_ACCOUNT'],

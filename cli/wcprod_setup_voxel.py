@@ -7,6 +7,12 @@ import numpy as np
 import yaml
 import time
 
+TEMPLATE_WCSIM_RUN='''
+#!/bin/bash
+cd %s
+./scripts/run.sh %s ./build/macros/tuning_parameters.mac
+'''
+
 WRAPUP_CONFIG_FILE_NAME='wrapup_job.yaml'
 
 TEMPLATE_G4='''
@@ -47,47 +53,22 @@ TEMPLATE_G4='''
 /run/beamOn                            %d
 '''
 
-TEMPLATE_CHECK_SHELL='''#!/bin/bash
+TEMPLATE_CHECK_SHELL='''
 #!/bin/bash
 
 source %s
-root -l -b -q '%s.C()'
+%s/build/app/check_uniform_voxel -f %s -c %s/%s -q'
 '''
 
 TEMPLATE_CHECK_CMACRO='''
-#include <iostream>
-#include <stdio.h>     
-#include <stdlib.h>
-#include <string>
-#include <fstream>
-// Simple example of reading a generated Root file
-void %s()
-{
-	gEnv->GetValue("TFile.Recover", 0);
-	gSystem->Load("${WCSIMDIR}/build/libWCSimRoot.so");
-
-	TFile *file;
-	file = new TFile("%s","read");
-	if (!file->IsOpen()){
-	  cout << "Error, could not open input file: " << file->GetName() << endl;
-	  return -1;
-	}
-  
-	TTree *tree = (TTree*)file->Get("wcsimT");
-  
-	int nevent = tree->GetEntries();
-
-	ofstream fout;
-	fout.open("%s",std::ios_base::app);
-	fout << std::endl << "NEventsOutput: " << nevent << std::endl;
-	fout.close();
-
-	fout.open("%s",std::ios_base::app);
-	fout << std::endl << "NEventsOutput: " << nevent << std::endl;
-	fout.close();
-}
+r0: %f
+r1: %f
+phi0: %f
+phi1: %f
+z0: %f
+z1: %f
+criterion: -0.1
 '''
-
 
 ERROR_MISSING_ARG_COUNT=1
 ERROR_MISSING_CONFIGFILE=2
@@ -105,7 +86,7 @@ def parse_config(cfg_file):
 	with open(cfg_file,'r') as f:
 		cfg=yaml.safe_load(f)
 
-		for key in ['DBFile','Project','NPhotons','NEvents','Storage','ROOT_SETUP']:
+		for key in ['DBFile','Project','NPhotons','NEvents','Storage','ROOT_SETUP', 'WCSIM_HOME', 'WCSIM_ENV']:
 			if not key in cfg.keys():
 				print('ERROR: configuration lacking a keyword:',key)
 				sys.exit(ERROR_MISSING_KEYWORD)
@@ -131,6 +112,8 @@ def main():
 	nevents  = int(cfg['NEvents'])
 	storage_root = cfg['Storage']
 	root_setup   = cfg['ROOT_SETUP']
+	wcsim_home   = cfg['WCSIM_HOME']
+	wcsim_env    = cfg['WCSI_ENV']
 
 	db=wcprod_db(dbfile)
 	if not db.exist_project(project):
@@ -161,12 +144,14 @@ def main():
 		print(f"Failed to create the storage directory '{storage_path}'")
 		sys.exit(ERROR_STORAGE_CREATION)
 
+	os.chdir(storage_path)
+
 	# Step 2: prepare G4 macro
 	out_file   = '%s/out_%s_%09d_%03d.root' % (storage_path,project,config_id,file_ctr)
 	contents = TEMPLATE_G4 % (r0,r1,z0,z1,phi0,phi1,out_file,nevents)
-	with open('log.txt','a') as f:	
+	with open(f'{storage_path}/log.txt','a') as f:
 		f.write('\n\n'+contents+'\n\n')
-	with open('g4.mac','w') as f:
+	with open(f'{storage_path}/g4.mac','w') as f:
 		f.write(contents)
 
 	# Step 3: store the configuration for the wrapup file
@@ -175,26 +160,30 @@ def main():
 		Destination=storage_path,Output=out_file,
 		NPhotons=nphotons,NEvents=nevents)
 	wrapup_file = WRAPUP_CONFIG_FILE_NAME
-	wrapup_record = 'wrapup_%s_%09d_%03d.yaml' % (project,config_id,file_ctr)
+	wrapup_record = '%s/wrapup_%s_%09d_%03d.yaml' % (storage_path, project,config_id,file_ctr)
 	with open(wrapup_file, 'w') as f:
 	    yaml.dump(wrapup_cfg, f, default_flow_style=False)
 	with open(wrapup_record, 'w') as f:
 		yaml.dump(wrapup_cfg, f, default_flow_style=False)
-	with open('log.txt','a') as f:
+	with open(f'{storage_path}/log.txt','a') as f:
 		f.write('\n\n')
 		yaml.dump(wrapup_cfg, f, default_flow_style=False)
 
 	# Step 4: prepare the check script for wcsim file
-	cmacro_name = 'wcprod_check'
-	contents = TEMPLATE_CHECK_CMACRO % (cmacro_name,out_file,wrapup_file,wrapup_record)
-	with open('log.txt','a') as f:
+	cmacro_name = 'uniform_check'
+	contents = TEMPLATE_CHECK_CMACRO % (r0,r1,phi0,phi1,z0,z1)
+	with open(f'{storage_path}/log.txt','a') as f:
 		f.write('\n\n'+contents+'\n\n')
-	with open('%s.C' % cmacro_name,'w') as f:
+	with open('%s/%s.yaml' % (storage_path, cmacro_name),'w') as f:
 		f.write(contents)
 
-	contents = TEMPLATE_CHECK_SHELL % (root_setup,cmacro_name)
-	with open('wcprod_check.sh','w') as f:
+	contents = TEMPLATE_CHECK_SHELL % (wcsim_env, storage_path, out_file, storage_path, cmacro_name)
+	with open(f'{storage_path}/wcprod_check.sh','w') as f:
 		f.write(contents)
+
+	script_wcsim = TEMPLATE_WCSIM_RUN % (wcsim_home, f"{storage_path}/g4.mac")
+	with open(f'{storage_path}/run_wcsim.sh', 'w') as f:
+		f.write(script_wcsim)
 
 	sys.exit(0)
 

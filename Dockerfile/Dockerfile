@@ -19,12 +19,12 @@ RUN apt-get -y update && \
     apt-get -y install screen tmux && \
     ln -s /usr/bin/python3 /usr/bin/python && \
     pip3 --no-cache-dir install -U pip && \
-    pip3 --no-cache-dir install --upgrade setuptools numpy pyyaml pytest tqdm pandas plotly jupyter
+    pip3 --no-cache-dir install --upgrade setuptools numpy pyyaml pytest tqdm pandas plotly jupyter h5py
 
 RUN mkdir /app && cd /app && \
     git clone --no-checkout https://github.com/seanxia8/wcprod_cider.git && \
     cd wcprod_cider && \
-    git checkout 1094f089ec77a68b34a3daf018e89c3adc4a9a85 && \
-    pip3 --no-cache-dir install .			  
+    git checkout fe639731f19cf57494d9be4e3d4ff3fc9aa2583e && \
+    pip3 --no-cache-dir install --upgrade .
 
 RUN apt-get -y install libspdlog-dev
