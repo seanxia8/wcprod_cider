@@ -65,14 +65,14 @@ do
  #singularity exec %s %s wcprod_wrapup_shotgun.py wrapup_job.yaml >> log.txt  2>&1
 
  echo
- echo "Finished!" && echo "Finished!" >> log.txt  2>&1
+ echo "Finished!" >> log.txt  2>&1
  echo `date` && echo `date` >> log.txt  2>&1
  echo
 done
 
 echo
-echo "Exiting" && echo "Exiting" >> log.txt  2>&1
-echo `date` && echo `date` >> log.txt  2>&1
+echo "Exiting" >> log.txt  2>&1
+echo `date` >> log.txt  2>&1
 '''
 
 def parse_config(cfg):
