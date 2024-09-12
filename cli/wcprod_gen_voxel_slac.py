@@ -37,16 +37,15 @@ if [ ! -f setup_job.yaml ]; then
     " > setup_job.yaml
 fi
 
-#echo "job environment dump\n" >> log.txt
-#echo `printenv` >> log.txt  2>&1
-
 # Execute N times
 for (( i=1;i<=%d;i++ ))
 do
 
  echo
  echo "Starting: run counter $i"
- singularity exec %s %s bash -c "wcprod_setup_voxel.py setup_job.yaml"  2>&1
+ storage_path=$(singularity exec %s %s bash -c "wcprod_setup_voxel.py setup_job.yaml") 2>&1
+ 
+ cd ${storage_path}
 
  echo `date` && echo `date` >> log.txt  2>&1
  echo
@@ -57,12 +56,12 @@ do
  echo
  echo "Running check"
  echo `date` && echo `date` >> log.txt  2>&1
- singularity exec %s %s bash wcprod_check.sh >> log.txt  2>&1
+ singularity exec %s %s wcprod_check.sh >> log.txt  2>&1
 
- #echo
- #echo "Wrapping up"
- #echo `date` && echo `date` >> log.txt  2>&1
- #singularity exec %s %s wcprod_wrapup_shotgun.py wrapup_job.yaml >> log.txt  2>&1
+ echo
+ echo "Wrapping up"
+ echo `date` && echo `date` >> log.txt  2>&1
+ singularity exec %s %s wcprod_wrapup_voxel.py wrapup_job.yaml >> log.txt  2>&1
 
  echo
  echo "Finished!" >> log.txt  2>&1
@@ -73,6 +72,8 @@ done
 echo
 echo "Exiting" >> log.txt  2>&1
 echo `date` >> log.txt  2>&1
+
+cd $WORKDIR
 '''
 
 def parse_config(cfg):
@@ -178,14 +179,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
-
-
-
-
-
-
-
-
-

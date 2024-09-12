@@ -57,7 +57,7 @@ TEMPLATE_CHECK_SHELL='''
 #!/bin/bash
 
 source %s
-%s/build/app/check_uniform_voxel -f %s -c %s/%s -q'
+%s/build/app/check_uniform_voxel -f %s -c %s/%s.yaml -q
 '''
 
 TEMPLATE_CHECK_CMACRO='''
@@ -113,7 +113,7 @@ def main():
 	storage_root = cfg['Storage']
 	root_setup   = cfg['ROOT_SETUP']
 	wcsim_home   = cfg['WCSIM_HOME']
-	wcsim_env    = cfg['WCSI_ENV']
+	wcsim_env    = cfg['WCSIM_ENV']
 
 	db=wcprod_db(dbfile)
 	if not db.exist_project(project):
@@ -177,7 +177,7 @@ def main():
 	with open('%s/%s.yaml' % (storage_path, cmacro_name),'w') as f:
 		f.write(contents)
 
-	contents = TEMPLATE_CHECK_SHELL % (wcsim_env, storage_path, out_file, storage_path, cmacro_name)
+	contents = TEMPLATE_CHECK_SHELL % (wcsim_env, wcsim_home, out_file, storage_path, cmacro_name)
 	with open(f'{storage_path}/wcprod_check.sh','w') as f:
 		f.write(contents)
 
@@ -185,7 +185,8 @@ def main():
 	with open(f'{storage_path}/run_wcsim.sh', 'w') as f:
 		f.write(script_wcsim)
 
-	sys.exit(0)
+	#sys.exit(0)
+	return storage_path
 
 if __name__ == '__main__':
-	main()
+	print(main())
