@@ -34,6 +34,7 @@ if [ ! -f setup_job.yaml ]; then
     ROOT_SETUP: /src/root/install/bin/thisroot.sh
     WCSIM_HOME: %s
     WCSIM_ENV: /src/scripts/sourceme.sh
+    Rebin_DBfile: %s
     WC_rmax: %f
     WC_zmax: %f
     Rebin_gap_space: %f
@@ -52,6 +53,7 @@ do
  storage_path=$(singularity exec %s %s bash -c "wcprod_setup_voxel.py setup_job.yaml") 2>&1
  
  cd ${storage_path}
+ echo `chmod +x ./*`
 
  echo `date` && echo `date` >> log.txt  2>&1
  echo
@@ -62,7 +64,7 @@ do
  echo
  echo "Running check"
  echo `date` && echo `date` >> log.txt  2>&1
- singularity exec %s %s wcprod_check.sh >> log.txt  2>&1
+ singularity exec %s %s ./wcprod_check.sh >> log.txt  2>&1
 
  echo
  echo "Wrapping up"
@@ -72,12 +74,12 @@ do
  echo
  echo "Convert to h5"
  echo `date` && echo `date` >> log.txt  2>&1
- singularity exec %s %s convert.py convert.yaml >> log.txt  2>&1 
+ singularity exec %s %s ./run_convert.sh >> log.txt  2>&1 
  
  echo
  echo "Rebin"
  echo `date` && echo `date` >> log.txt  2>&1
- singularity exec %s %s rebin.py rebin.yaml uniform_check.yaml >> log.txt  2>&1  
+ singularity exec %s %s ./run_rebin.sh >> log.txt  2>&1  
 
  echo
  echo "Finished!" >> log.txt  2>&1
@@ -110,7 +112,7 @@ def parse_config(cfg):
                 'SLURM_ACCOUNT','SLURM_PARTITION','SLURM_PREEMPTABLE',
                 'SLURM_NCPU','SLURM_NJOBS_TOTAL','SLURM_NJOBS_CONCURRENT',
                 'CONTAINER_WCSIM','CONTAINER_WCPROD', 'WCSIM_HOME',
-                'WC_RMAX','WC_ZMAX',
+                'REBIN_DBFILE', 'WC_RMAX','WC_ZMAX',
                 'REBIN_GAP_SPACE', 'REBIN_GAP_ANGLE', 'REBIN_N_BINS_PHI0', 'NUM_SHARDS']
 
     for key in keywords:
@@ -180,6 +182,7 @@ def main():
         cfg['WCPROD_NEVENTS'],
         os.path.join(cfg['WCPROD_STORAGE_ROOT'],cfg['WCPROD_PROJECT']),
         cfg['WCSIM_HOME'],
+        cfg['REBIN_DB_FILE'],
         cfg['WC_RMAX'],
         cfg['WC_ZMAX'],
         cfg['REBIN_GAP_SPACE'],
@@ -203,7 +206,6 @@ def main():
 
     with open('run_voxel_slac.sh','w') as f:
         f.write(script)
-        
 
 if __name__ == '__main__':
     main()

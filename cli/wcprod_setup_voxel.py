@@ -7,16 +7,23 @@ import numpy as np
 import yaml
 import time
 
-TEMPLATE_WCSIM_RUN='''
-#!/bin/bash
+TEMPLATE_WCSIM_RUN='''#!/bin/bash
 cd %s
 ./scripts/run.sh %s ./build/macros/tuning_parameters.mac
+'''
+TEMPLATE_CONVERT_RUN='''#!/bin/bash
+source /src/scripts/sourceme.sh
+python3 ${DATATOOLS}/convert.py ./convert.yaml
+'''
+
+TEMPLATE_REBIN_RUN='''#!/bin/bash
+source /src/scripts/sourceme.sh
+python3 ${DATATOOLS}/rebin.py ./rebin.yaml ./uniform_check.yaml
 '''
 
 WRAPUP_CONFIG_FILE_NAME='wrapup_job.yaml'
 
-TEMPLATE_G4='''
-/run/verbose                           1
+TEMPLATE_G4='''/run/verbose                           1
 /tracking/verbose                      0
 /Tracking/trackParticle                0
 /hits/verbose                          0
@@ -53,25 +60,23 @@ TEMPLATE_G4='''
 /run/beamOn                            %d
 '''
 
-TEMPLATE_CHECK_SHELL='''
-#!/bin/bash
+TEMPLATE_CHECK_SHELL='''#!/bin/bash
 
 source %s
 %s/build/app/check_uniform_voxel -f %s -c %s/%s.yaml -q
 '''
 
-TEMPLATE_CHECK_CMACRO='''
-r0: %f
+TEMPLATE_CHECK_CMACRO='''r0: %f
 r1: %f
 phi0: %f
 phi1: %f
 z0: %f
 z1: %f
 criterion: -0.1
+wrapup_file: %s
 '''
 
-TEMPLATE_CONVERT='''
-# WCSim config file for ROOT->HDF5 conversion
+TEMPLATE_CONVERT='''# WCSim config file for ROOT->HDF5 conversion
 
 data:
   file_name: %s
@@ -98,8 +103,7 @@ format:
   compression_opt: 5
 '''
 
-TEMPLATE_REBIN='''
-# binning scheme for photon position and direction
+TEMPLATE_REBIN='''# binning scheme for photon position and direction
 
 Data:
   input_file: %s
@@ -157,6 +161,7 @@ def parse_config(cfg_file):
 		cfg=yaml.safe_load(f)
 
 		for key in ['DBFile','Project','NPhotons','NEvents','Storage','ROOT_SETUP', 'WCSIM_HOME', 'WCSIM_ENV',
+					'Rebin_DBfile', 'WC_rmax', 'WC_zmax',
 					'Rebin_gap_space', 'Rebin_gap_angle', 'Rebin_n_bins_phi0', 'Num_shards']:
 			if not key in cfg.keys():
 				print('ERROR: configuration lacking a keyword:',key)
@@ -185,6 +190,7 @@ def main():
 	root_setup   = cfg['ROOT_SETUP']
 	wcsim_home   = cfg['WCSIM_HOME']
 	wcsim_env    = cfg['WCSIM_ENV']
+	rebin_dbfile = cfg['Rebin_DBfile']
 	rmax = cfg['WC_rmax']
 	zmax = cfg['WC_zmax']
 	rebin_gap_space = cfg['Rebin_gap_space']
@@ -237,18 +243,18 @@ def main():
 		Destination=storage_path,Output=out_file,
 		NPhotons=nphotons,NEvents=nevents)
 	wrapup_file = WRAPUP_CONFIG_FILE_NAME
-	wrapup_record = '%s/wrapup_%s_%09d_%03d.yaml' % (storage_path, project,config_id,file_ctr)
-	with open(wrapup_file, 'w') as f:
+	#wrapup_record = '%s/wrapup_%s_%09d_%03d.yaml' % (storage_path, project,config_id,file_ctr)
+	with open(f'{storage_path}/{wrapup_file}', 'a') as f:
 	    yaml.dump(wrapup_cfg, f, default_flow_style=False)
-	with open(wrapup_record, 'w') as f:
-		yaml.dump(wrapup_cfg, f, default_flow_style=False)
+	#with open(wrapup_record, 'w') as f:
+    #		yaml.dump(wrapup_cfg, f, default_flow_style=False)
 	with open(f'{storage_path}/log.txt','a') as f:
 		f.write('\n\n')
 		yaml.dump(wrapup_cfg, f, default_flow_style=False)
 
 	# Step 4: prepare the check script for wcsim file
 	cmacro_name = 'uniform_check'
-	contents = TEMPLATE_CHECK_CMACRO % (r0,r1,phi0,phi1,z0,z1)
+	contents = TEMPLATE_CHECK_CMACRO % (r0,r1,phi0,phi1,z0,z1,f'{storage_path}/{wrapup_file}')
 	with open(f'{storage_path}/log.txt','a') as f:
 		f.write('\n\n'+contents+'\n\n')
 	with open('%s/%s.yaml' % (storage_path, cmacro_name),'w') as f:
@@ -268,9 +274,15 @@ def main():
 		f.write(script_convert)
 
 	out_rebin_h5 = '%s/rebin_%s_%09d_%03d.h5' % (storage_path,project,config_id,file_ctr)
-	script_rebin = TEMPLATE_REBIN % (out_raw_h5, out_rebin_h5, rmax, zmax, rebin_gap_space, rebin_n_bins_phi0, rebin_gap_angle, dbfile, num_shards)
+	script_rebin = TEMPLATE_REBIN % (out_raw_h5, out_rebin_h5, rmax, zmax, rebin_gap_space, rebin_n_bins_phi0, rebin_gap_angle, rebin_dbfile, num_shards)
 	with open(f'{storage_path}/rebin.yaml', 'w') as f:
 		f.write(script_rebin)
+
+	with open(f'{storage_path}/run_convert.sh', 'w') as f:
+		f.write(TEMPLATE_CONVERT_RUN)
+
+	with open(f'{storage_path}/run_rebin.sh', 'w') as f:
+		f.write(TEMPLATE_REBIN_RUN)
 
 	#sys.exit(0)
 	return storage_path
