@@ -112,7 +112,7 @@ def parse_config(cfg):
                 'SLURM_ACCOUNT','SLURM_PARTITION','SLURM_PREEMPTABLE',
                 'SLURM_NCPU','SLURM_NJOBS_TOTAL','SLURM_NJOBS_CONCURRENT',
                 'CONTAINER_WCSIM','CONTAINER_WCPROD', 'WCSIM_HOME',
-                'REBIN_DBFILE', 'WC_RMAX','WC_ZMAX',
+                'REBIN_DB_FILE', 'WC_RMAX','WC_ZMAX',
                 'REBIN_GAP_SPACE', 'REBIN_GAP_ANGLE', 'REBIN_N_BINS_PHI0', 'NUM_SHARDS']
 
     for key in keywords:
