@@ -70,6 +70,76 @@ z1: %f
 criterion: -0.1
 '''
 
+TEMPLATE_CONVERT='''
+# WCSim config file for ROOT->HDF5 conversion
+
+data:
+  file_name: %s
+  output_file: %s
+  n_photons: %d
+  nevents_per_file: %d
+  root_branches:
+      event_info:
+        - [pid, np.int32, 1]
+        - [position, np.float32, 3]
+        - [direction, np.float32, 3]
+        - [energy, np.float32, 1]
+      digi_hits:
+        - [pmt, np.int32, 10184] # pmt id
+        - [charge, np.float32, 10184]
+        - [time, np.float32, 10184]
+        - [trigger, np.int32, 10184] # pmt trigger id
+
+detector:
+  npmts: 10184
+
+format:
+  compression: gzip
+  compression_opt: 5
+'''
+
+TEMPLATE_REBIN='''
+# binning scheme for photon position and direction
+
+Data:
+  input_file: %s
+  output_file: %s
+  dset_names:
+      - position
+      - direction
+      - digi_pmt
+      - digi_charge
+      - digi_time
+
+Position:
+  rmax: %f
+  zmax: %f
+  gap_space: %f
+  n_bins_phi0: %f
+
+Direction:
+  gap_angle: %f
+
+Energy:
+  n_bins: 1
+
+Action:
+  wall_cut: True
+  towall_cut: True
+
+Database:
+  db_file: %s
+  num_shards: %d
+
+Detector:
+  npmt: 10184
+
+Format:
+  compression: gzip
+  compression_opt: 5
+  drop_unhit: True
+'''
+
 ERROR_MISSING_ARG_COUNT=1
 ERROR_MISSING_CONFIGFILE=2
 ERROR_MISSING_KEYWORD=3
@@ -86,7 +156,8 @@ def parse_config(cfg_file):
 	with open(cfg_file,'r') as f:
 		cfg=yaml.safe_load(f)
 
-		for key in ['DBFile','Project','NPhotons','NEvents','Storage','ROOT_SETUP', 'WCSIM_HOME', 'WCSIM_ENV']:
+		for key in ['DBFile','Project','NPhotons','NEvents','Storage','ROOT_SETUP', 'WCSIM_HOME', 'WCSIM_ENV',
+					'Rebin_gap_space', 'Rebin_gap_angle', 'Rebin_n_bins_phi0', 'Num_shards']:
 			if not key in cfg.keys():
 				print('ERROR: configuration lacking a keyword:',key)
 				sys.exit(ERROR_MISSING_KEYWORD)
@@ -114,6 +185,12 @@ def main():
 	root_setup   = cfg['ROOT_SETUP']
 	wcsim_home   = cfg['WCSIM_HOME']
 	wcsim_env    = cfg['WCSIM_ENV']
+	rmax = cfg['WC_rmax']
+	zmax = cfg['WC_zmax']
+	rebin_gap_space = cfg['Rebin_gap_space']
+	rebin_gap_angle = cfg['Rebin_gap_angle']
+	rebin_n_bins_phi0 = cfg['Rebin_n_bins_phi0']
+	num_shards = cfg['Num_shards']
 
 	db=wcprod_db(dbfile)
 	if not db.exist_project(project):
@@ -184,6 +261,16 @@ def main():
 	script_wcsim = TEMPLATE_WCSIM_RUN % (wcsim_home, f"{storage_path}/g4.mac")
 	with open(f'{storage_path}/run_wcsim.sh', 'w') as f:
 		f.write(script_wcsim)
+
+	out_raw_h5 = '%s/raw_%s_%09d_%03d.h5' % (storage_path,project,config_id,file_ctr)
+	script_convert = TEMPLATE_CONVERT % (out_file, out_raw_h5, nphotons, nevents)
+	with open(f'{storage_path}/convert.yaml', 'w') as f:
+		f.write(script_convert)
+
+	out_rebin_h5 = '%s/rebin_%s_%09d_%03d.h5' % (storage_path,project,config_id,file_ctr)
+	script_rebin = TEMPLATE_REBIN % (out_raw_h5, out_rebin_h5, rmax, zmax, rebin_gap_space, rebin_n_bins_phi0, rebin_gap_angle, dbfile, num_shards)
+	with open(f'{storage_path}/rebin.yaml', 'w') as f:
+		f.write(script_rebin)
 
 	#sys.exit(0)
 	return storage_path

@@ -34,6 +34,12 @@ if [ ! -f setup_job.yaml ]; then
     ROOT_SETUP: /src/root/install/bin/thisroot.sh
     WCSIM_HOME: %s
     WCSIM_ENV: /src/scripts/sourceme.sh
+    WC_rmax: %f
+    WC_zmax: %f
+    Rebin_gap_space: %f
+    Rebin_gap_angle: %f
+    Rebin_n_bins_phi0: %f
+    Num_shards: %d
     " > setup_job.yaml
 fi
 
@@ -62,6 +68,16 @@ do
  echo "Wrapping up"
  echo `date` && echo `date` >> log.txt  2>&1
  singularity exec %s %s wcprod_wrapup_voxel.py wrapup_job.yaml >> log.txt  2>&1
+ 
+ echo
+ echo "Convert to h5"
+ echo `date` && echo `date` >> log.txt  2>&1
+ singularity exec %s %s convert.py convert.yaml >> log.txt  2>&1 
+ 
+ echo
+ echo "Rebin"
+ echo `date` && echo `date` >> log.txt  2>&1
+ singularity exec %s %s rebin.py rebin.yaml uniform_check.yaml >> log.txt  2>&1  
 
  echo
  echo "Finished!" >> log.txt  2>&1
@@ -89,11 +105,13 @@ def parse_config(cfg):
     else:
         cfg = yaml.safe_load(open(wcprod.get_config(cfg),'r').read())
     keywords = ['WCPROD_STORAGE_ROOT','WCPROD_WORK_DIR','WCPROD_DB_FILE',
-    'WCPROD_PROJECT','WCPROD_NEVENTS','WCPROD_NPHOTONS','WCPROD_NLOOPS',
-    'SLURM_LOG_DIR','SLURM_TIME','SLURM_MEM',
-    'SLURM_ACCOUNT','SLURM_PARTITION','SLURM_PREEMPTABLE',
-    'SLURM_NCPU','SLURM_NJOBS_TOTAL','SLURM_NJOBS_CONCURRENT',
-    'CONTAINER_WCSIM','CONTAINER_WCPROD', 'WCSIM_HOME']
+                'WCPROD_PROJECT','WCPROD_NEVENTS','WCPROD_NPHOTONS','WCPROD_NLOOPS',
+                'SLURM_LOG_DIR','SLURM_TIME','SLURM_MEM',
+                'SLURM_ACCOUNT','SLURM_PARTITION','SLURM_PREEMPTABLE',
+                'SLURM_NCPU','SLURM_NJOBS_TOTAL','SLURM_NJOBS_CONCURRENT',
+                'CONTAINER_WCSIM','CONTAINER_WCPROD', 'WCSIM_HOME',
+                'WC_RMAX','WC_ZMAX',
+                'REBIN_GAP_SPACE', 'REBIN_GAP_ANGLE', 'REBIN_N_BINS_PHI0', 'NUM_SHARDS']
 
     for key in keywords:
         if not key in cfg.keys():
@@ -162,6 +180,12 @@ def main():
         cfg['WCPROD_NEVENTS'],
         os.path.join(cfg['WCPROD_STORAGE_ROOT'],cfg['WCPROD_PROJECT']),
         cfg['WCSIM_HOME'],
+        cfg['WC_RMAX'],
+        cfg['WC_ZMAX'],
+        cfg['REBIN_GAP_SPACE'],
+        cfg['REBIN_GAP_ANGLE'],
+        cfg['REBIN_N_BINS_PHI0'],
+        cfg['NUM_SHARDS'],
         cfg['WCPROD_NLOOPS'],
         cfg['BIND_PATH'],
         cfg['CONTAINER_WCPROD'],
@@ -171,6 +195,10 @@ def main():
         cfg['CONTAINER_WCSIM'],
         cfg['BIND_PATH'],
         cfg['CONTAINER_WCPROD'],
+        cfg['BIND_PATH'],
+        cfg['CONTAINER_WCSIM'],
+        cfg['BIND_PATH'],
+        cfg['CONTAINER_WCSIM'],
         )
 
     with open('run_voxel_slac.sh','w') as f:
