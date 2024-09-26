@@ -42,6 +42,7 @@ TEMPLATE_G4='''/run/verbose                           1
 /DAQ/Digitizer                         SKI
 /DAQ/Trigger                           NoTrigger
 /control/execute                       macros/daq.mac
+/DarkRate/SetDetectorElement           tank
 /DarkRate/SetDarkRate                  0 kHz
 /DarkRate/SetDarkMode                  1
 /DarkRate/SetDarkHigh                  100000
