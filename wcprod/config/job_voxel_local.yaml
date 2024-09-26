@@ -9,7 +9,7 @@ WCPROD_NPHOTONS:     1
 WCPROD_NLOOPS:       1
 WCPROD_STORAGE_ROOT: /sdf/home/j/junjie/sdf-data/voxel/playground/test_sub
 WCPROD_WORK_DIR:     /sdf/home/j/junjie/sdf-data/voxel/playground/test_sub
-SLURM_LOG_DIR: /sdf/home/j/junjie/sdf-data/voxel/playground/slurm_log
+SLURM_LOG_DIR: /sdf/home/j/junjie/sdf-data/voxel/playground/test_sub/slurm_log
 SLURM_TIME:    1:00:00
 SLURM_MEM:     4
 SLURM_NCPU:    1
