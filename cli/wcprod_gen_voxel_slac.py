@@ -53,7 +53,7 @@ do
  storage_path=$(singularity exec %s %s bash -c "wcprod_setup_voxel.py setup_job.yaml") 2>&1
  
  cd ${storage_path}
- echo `chmod +x ./*`
+ chmod +x ./*
 
  echo `date` && echo `date` >> log.txt  2>&1
  echo
@@ -69,7 +69,7 @@ do
  echo
  echo "Wrapping up"
  echo `date` && echo `date` >> log.txt  2>&1
- singularity exec %s %s wcprod_wrapup_voxel.py wrapup_job.yaml >> log.txt  2>&1
+ singularity exec %s %s bash -c "wcprod_wrapup_voxel.py wrapup_job.yaml" >> log.txt  2>&1
  
  echo
  echo "Convert to h5"
