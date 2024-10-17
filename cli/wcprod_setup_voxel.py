@@ -15,12 +15,6 @@ TEMPLATE_CONVERT_RUN='''#!/bin/bash
 source /src/scripts/sourceme.sh
 python3 ${DATATOOLS}/convert.py ./convert.yaml
 '''
-
-TEMPLATE_REBIN_RUN='''#!/bin/bash
-source /src/scripts/sourceme.sh
-python3 ${DATATOOLS}/rebin.py ./rebin.yaml ./uniform_check.yaml
-'''
-
 WRAPUP_CONFIG_FILE_NAME='wrapup_job.yaml'
 
 TEMPLATE_G4='''/run/verbose                           1
@@ -49,6 +43,8 @@ TEMPLATE_G4='''/run/verbose                           1
 /DarkRate/SetDarkLow                   0
 /DarkRate/SetDarkWindow                4000
 /mygen/generator                       voxel
+/mygen/nsubevents                      %d
+/mygen/noptphotons                     %d
 /mygen/r0_Vox                          %f mm
 /mygen/r1_Vox                          %f mm
 /mygen/z0_Vox                          %f mm
@@ -104,47 +100,6 @@ format:
   compression_opt: 5
 '''
 
-TEMPLATE_REBIN='''# binning scheme for photon position and direction
-
-Data:
-  input_file: %s
-  output_file: %s
-  dset_names:
-      - position
-      - direction
-      - digi_pmt
-      - digi_charge
-      - digi_time
-
-Position:
-  rmax: %f
-  zmax: %f
-  gap_space: %f
-  n_bins_phi0: %f
-
-Direction:
-  gap_angle: %f
-
-Energy:
-  n_bins: 1
-
-Action:
-  wall_cut: True
-  towall_cut: True
-
-Database:
-  db_file: %s
-  num_shards: %d
-
-Detector:
-  npmt: 10184
-
-Format:
-  compression: gzip
-  compression_opt: 5
-  drop_unhit: True
-'''
-
 ERROR_MISSING_ARG_COUNT=1
 ERROR_MISSING_CONFIGFILE=2
 ERROR_MISSING_KEYWORD=3
@@ -161,9 +116,7 @@ def parse_config(cfg_file):
 	with open(cfg_file,'r') as f:
 		cfg=yaml.safe_load(f)
 
-		for key in ['DBFile','Project','NPhotons','NEvents','Storage','ROOT_SETUP', 'WCSIM_HOME', 'WCSIM_ENV',
-					'Rebin_DBfile', 'WC_rmax', 'WC_zmax',
-					'Rebin_gap_space', 'Rebin_gap_angle', 'Rebin_n_bins_phi0', 'Num_shards']:
+		for key in ['DBFile','Project','NPhotons', 'NSubEvents', 'NEvents','Storage','ROOT_SETUP', 'WCSIM_HOME', 'WCSIM_ENV']:
 			if not key in cfg.keys():
 				print('ERROR: configuration lacking a keyword:',key)
 				sys.exit(ERROR_MISSING_KEYWORD)
@@ -186,24 +139,31 @@ def main():
 	dbfile   = cfg['DBFile']
 	project  = cfg['Project']
 	nphotons = int(cfg['NPhotons'])
+	nsubevents= int(cfg['NSubEvents'])
 	nevents  = int(cfg['NEvents'])
 	storage_root = cfg['Storage']
 	root_setup   = cfg['ROOT_SETUP']
 	wcsim_home   = cfg['WCSIM_HOME']
 	wcsim_env    = cfg['WCSIM_ENV']
-	rebin_dbfile = cfg['Rebin_DBfile']
-	rmax = cfg['WC_rmax']
-	zmax = cfg['WC_zmax']
-	rebin_gap_space = cfg['Rebin_gap_space']
-	rebin_gap_angle = cfg['Rebin_gap_angle']
-	rebin_n_bins_phi0 = cfg['Rebin_n_bins_phi0']
-	num_shards = cfg['Num_shards']
+	#rebin_dbfile = cfg['Rebin_DBfile']
+	#rmax = cfg['WC_rmax']
+	#zmax = cfg['WC_zmax']
+	#rebin_gap_space = cfg['Rebin_gap_space']
+	#rebin_gap_angle = cfg['Rebin_gap_angle']
+	#rebin_n_bins_phi0 = cfg['Rebin_n_bins_phi0']
+	#num_shards = cfg['Num_shards']
+	cluster = cfg['Cluster']
 
 	db=wcprod_db(dbfile)
 	if not db.exist_project(project):
 		print(f"ERROR: project '{project}' not found in the database {dbfile}.")
 		sys.exit(ERROR_PROJECT_NOT_FOUND)
 
+	# lock all tables first and unlock the ones needed for the current cluster
+	db.lock_table(project)
+	table_ids = db.get_table_ids(project, cluster)
+	for tid in table_ids:
+		db.unlock_table(project, tid)
 	cfg = db.get_random_config(project, prioritize=True, size=1000)
 	file_ctr = cfg['file_ctr']
 	config_id = cfg['config_id']
@@ -232,7 +192,7 @@ def main():
 
 	# Step 2: prepare G4 macro
 	out_file   = '%s/out_%s_%09d_%03d.root' % (storage_path,project,config_id,file_ctr)
-	contents = TEMPLATE_G4 % (r0,r1,z0,z1,phi0,phi1,out_file,nevents)
+	contents = TEMPLATE_G4 % (nsubevents, nphotons, r0,r1,z0,z1,phi0,phi1,out_file,nevents)
 	with open(f'{storage_path}/log.txt','a') as f:
 		f.write('\n\n'+contents+'\n\n')
 	with open(f'{storage_path}/g4.mac','w') as f:
@@ -242,7 +202,7 @@ def main():
 	wrapup_cfg = dict(DBFile=dbfile,Project=project,ConfigID=config_id,
 		StartTime=time.time(),
 		Destination=storage_path,Output=out_file,
-		NPhotons=nphotons,NEvents=nevents)
+		NPhotons=nphotons,NSubEvents=nsubevents,NEvents=nevents,)
 	wrapup_file = WRAPUP_CONFIG_FILE_NAME
 	#wrapup_record = '%s/wrapup_%s_%09d_%03d.yaml' % (storage_path, project,config_id,file_ctr)
 	with open(f'{storage_path}/{wrapup_file}', 'a') as f:
@@ -274,16 +234,16 @@ def main():
 	with open(f'{storage_path}/convert.yaml', 'w') as f:
 		f.write(script_convert)
 
-	out_rebin_h5 = '%s/rebin_%s_%09d_%03d.h5' % (storage_path,project,config_id,file_ctr)
-	script_rebin = TEMPLATE_REBIN % (out_raw_h5, out_rebin_h5, rmax, zmax, rebin_gap_space, rebin_n_bins_phi0, rebin_gap_angle, rebin_dbfile, num_shards)
-	with open(f'{storage_path}/rebin.yaml', 'w') as f:
-		f.write(script_rebin)
+	#out_rebin_h5 = '%s/rebin_%s_%09d_%03d.h5' % (storage_path,project,config_id,file_ctr)
+	#script_rebin = TEMPLATE_REBIN % (out_raw_h5, out_rebin_h5, rmax, zmax, rebin_gap_space, rebin_n_bins_phi0, rebin_gap_angle, rebin_dbfile, num_shards)
+	#with open(f'{storage_path}/rebin.yaml', 'w') as f:
+	#	f.write(script_rebin)
 
 	with open(f'{storage_path}/run_convert.sh', 'w') as f:
 		f.write(TEMPLATE_CONVERT_RUN)
 
-	with open(f'{storage_path}/run_rebin.sh', 'w') as f:
-		f.write(TEMPLATE_REBIN_RUN)
+	#with open(f'{storage_path}/run_rebin.sh', 'w') as f:
+	#	f.write(TEMPLATE_REBIN_RUN)
 
 	#sys.exit(0)
 	return storage_path

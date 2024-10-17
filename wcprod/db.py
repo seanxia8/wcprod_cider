@@ -462,6 +462,41 @@ class wcprod_db:
             # finish transaction
             self._conn.commit()
 
+    def get_table_ids(self, project:str, cluster:str):
+        """Retrieve the table IDs for the specified project and cluster
+
+        Retrieve the table IDs for the specified project and cluster.
+        The cluster is a string that can be used to group tables for a specific purpose.
+
+        Parameters
+        ----------
+        project : str
+            The name of a project to access in the database
+
+        cluster : str
+            The name of the cluster to access in the database
+
+        Returns
+        -------
+        list
+            The list of table IDs
+        """
+        all_table_ids = np.linspace(0, self.table_count(project), self.table_count(project))
+        portion = int(0.15*len(all_table_ids))
+        if cluster.lower() == "s3df":
+            return all_table_ids[5*portion:]
+        elif cluster.lower() == "cern":
+            return all_table_ids[:portion]
+        elif cluster.lower() == "sukap":
+            return all_table_ids[portion:2*portion]
+        elif cluster.lower() == "grid":
+            return all_table_ids[2*portion:3*portion]
+        elif cluster.lower() == "idark":
+            return all_table_ids[3*portion:4*portion]
+        elif cluster.lower() == "beluga":
+            return all_table_ids[4*portion:5*portion]
+        else:
+            raise ValueError(f"Invalid cluster name: {cluster}")
 
     def list_files(self,project:str,config_id:int=None,table_id:int=None):
         """Retrieve a list of files produced in the production

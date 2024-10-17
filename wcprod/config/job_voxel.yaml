@@ -1,0 +1,29 @@
+#specify your cluster type, e.g. slurm, condor, pjsub, dirac, etc.
+CLUSTER_TYPE:        slurm
+#specify your cluster name, e.g. s3df, cern, sukap, grid, etc.
+CLUSTER_NAME:        s3df
+BIND_PATH:           /sdf
+EXECUTABLE:          test.sh
+CONTAINER:           /sdf/home/j/junjie/sdf-data/sif/cider-dataprod_24.09.25.sif
+WCPROD_DB_FILE:      /sdf/home/j/junjie/SIREN/WCProd/wcprod_cider/example_wcte_vox_40000.db
+WCPROD_PROJECT:      example_wcte_vox_40000
+WCPROD_NEVENTS:      40000
+WCPROD_NSUBEVENTS:   1
+WCPROD_NPHOTONS:     1
+WCPROD_NLOOPS:       1
+WCPROD_STORAGE_ROOT: /sdf/home/j/junjie/sdf-data/voxel/playground/test_sub
+WCPROD_WORK_DIR:     /sdf/home/j/junjie/sdf-data/voxel/playground/test_sub
+JOB_LOG_DIR:         /sdf/home/j/junjie/sdf-data/voxel/playground/test_sub/slurm_log
+INITIAL_DIR:         /test/condor/initial/dir
+JOB_PRIORITY:        20
+JOB_TIME:            "1:00:00"
+JOB_MEM:             4
+JOB_DISK_SPACE:      4
+JOB_NCPU:            1
+NJOBS_TOTAL:         1
+SLURM_NJOBS_CONCURRENT: 1
+SLURM_ACCOUNT: neutrino
+SLURM_PARTITION: milano
+SLURM_PREEMPTABLE: True
+SLURM_NODELIST: ''
+WCSIM_HOME: /src/WCSim

@@ -16,6 +16,7 @@ setup(
     'cli/wcprod_setup_shotgun.py',
     'cli/wcprod_wrapup_shotgun.py',
     'cli/wcprod_gen_voxel_slac.py',
+    'cli/wcprod_gen_voxel.py',
     'cli/wcprod_setup_voxel.py',
     'cli/wcprod_wrapup_voxel.py',
     'cli/wcprod_list_config',

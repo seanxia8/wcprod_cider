@@ -2,8 +2,10 @@
 import sys,os
 import yaml
 import wcprod
+from datetime import datetime
 
-TEMPLATE='''#!/bin/bash
+#for slurm system, e.g. slac, idark
+TEMPLATE_slurm='''#!/bin/bash
 #SBATCH --job-name=wcprod
 #SBATCH --nodes=1
 #SBATCH --partition=%s
@@ -16,8 +18,28 @@ TEMPLATE='''#!/bin/bash
 #SBATCH --time=%s                                                                                                
 #SBATCH --array=1-%d%%%d
 %s
+'''
 
-# Set-up a work dir
+# for condor system, e.g. cern
+TEMPLATE_condor = '''notification            = Never
+universe                = vanilla
+executable              = %s
+output                  = %s/$(ClusterId).$(ProcId).out
+error                   = %s/$(ClusterId).$(ProcId).error
+log                     = %s/$(ClusterId).$(ProcId).log
+getenv                  = True
+should_transfer_files   = NO
+initialdir              = %s
+priority                = %d
+request_cpus            = %d
+request_memory          = %d GB
+request_disk            = %d GB
++JobFlavour             = "tomorrow"
++MaxRuntime             = %d
+queue %d
+'''
+
+TEMPLATE_job_script='''# Set-up a work dir
 export WORKDIR=%s
 mkdir -p $WORKDIR
 cd $WORKDIR
@@ -28,19 +50,14 @@ if [ ! -f setup_job.yaml ]; then
     echo "
     DBFile:   %s
     Project:  %s
-    NPhotons: %s
-    NEvents:  %s
+    NPhotons: %d
+    NSubEvents: %d
+    NEvents:  %d
     Storage:  %s
     ROOT_SETUP: /src/root/install/bin/thisroot.sh
     WCSIM_HOME: %s
     WCSIM_ENV: /src/scripts/sourceme.sh
-    Rebin_DBfile: %s
-    WC_rmax: %f
-    WC_zmax: %f
-    Rebin_gap_space: %f
-    Rebin_gap_angle: %f
-    Rebin_n_bins_phi0: %f
-    Num_shards: %d
+    Cluster: %s
     " > setup_job.yaml
 fi
 
@@ -77,11 +94,6 @@ do
  singularity exec %s %s ./run_convert.sh >> log.txt  2>&1 
  
  echo
- echo "Rebin"
- echo `date` && echo `date` >> log.txt  2>&1
- singularity exec %s %s ./run_rebin.sh >> log.txt  2>&1  
-
- echo
  echo "Finished!" >> log.txt  2>&1
  echo `date` && echo `date` >> log.txt  2>&1
  echo
@@ -106,24 +118,22 @@ def parse_config(cfg):
         cfg = yaml.safe_load(open(cfg,'r').read())
     else:
         cfg = yaml.safe_load(open(wcprod.get_config(cfg),'r').read())
-    keywords = ['WCPROD_STORAGE_ROOT','WCPROD_WORK_DIR','WCPROD_DB_FILE',
-                'WCPROD_PROJECT','WCPROD_NEVENTS','WCPROD_NPHOTONS','WCPROD_NLOOPS',
-                'SLURM_LOG_DIR','SLURM_TIME','SLURM_MEM',
-                'SLURM_ACCOUNT','SLURM_PARTITION','SLURM_PREEMPTABLE',
-                'SLURM_NCPU','SLURM_NJOBS_TOTAL','SLURM_NJOBS_CONCURRENT',
-                'CONTAINER_WCSIM','CONTAINER_WCPROD', 'WCSIM_HOME',
-                'REBIN_DB_FILE', 'WC_RMAX','WC_ZMAX',
-                'REBIN_GAP_SPACE', 'REBIN_GAP_ANGLE', 'REBIN_N_BINS_PHI0', 'NUM_SHARDS']
+    keywords = ['CLUSTER_TYPE','CLUSTER_NAME',
+                'WCPROD_STORAGE_ROOT','WCPROD_WORK_DIR','WCPROD_DB_FILE',
+                'WCPROD_PROJECT','WCPROD_NEVENTS','WCPROD_NSUBEVENTS','WCPROD_NPHOTONS','WCPROD_NLOOPS',
+                'JOB_LOG_DIR','JOB_TIME','JOB_MEM','JOB_DISK_SPACE', 'JOB_PRIORITY',
+                'SLURM_ACCOUNT','SLURM_PARTITION','SLURM_PREEMPTABLE','SLURM_NJOBS_CONCURRENT',
+                'JOB_NCPU','NJOBS_TOTAL',
+                'CONTAINER', 'WCSIM_HOME']
 
     for key in keywords:
         if not key in cfg.keys():
             print('ERROR: config missing a keyword',key)
             sys.exit(1)
-    
-    for key in ['CONTAINER_WCSIM','CONTAINER_WCPROD','WCPROD_DB_FILE']:
-        if not os.path.isfile(cfg[key]):
-            print(f"ERROR: a container missing '{cfg[key]}'")
-            sys.exit(1)
+
+    if not os.path.isfile(cfg['CONTAINER']):
+        print(f"ERROR: a container missing '{cfg['CONTAINER']}'")
+        sys.exit(1)
 
     db=wcprod.wcprod_db(cfg['WCPROD_DB_FILE'])
     if not db.exist_project(cfg['WCPROD_PROJECT']):
@@ -164,48 +174,71 @@ def main():
     if cfg.get('SLURM_NODELIST',False):
         EXTRA_FLAGS += f'#SBATCH --nodelist="{cfg["SLURM_NODELIST"]}"\n'
 
+    if cfg['CLUSTER_TYPE'] == 'slurm':
+        script_batch = TEMPLATE_slurm % (cfg['SLURM_PARTITION'],
+                                         cfg['SLURM_ACCOUNT'],
+                                         cfg['JOB_LOG_DIR'],
+                                         cfg['JOB_LOG_DIR'],
+                                         cfg['JOB_NCPU'],
+                                         round(cfg['JOB_MEM']/cfg['JOB_NCPU']),
+                                         cfg['JOB_TIME'],
+                                         cfg['NJOBS_TOTAL'],
+                                         cfg['SLURM_NJOBS_CONCURRENT'],
+                                         EXTRA_FLAGS,
+                                        )
 
-    script = TEMPLATE % (cfg['SLURM_PARTITION'],
-        cfg['SLURM_ACCOUNT'],
-        cfg['SLURM_LOG_DIR'],
-        cfg['SLURM_LOG_DIR'],
-        cfg['SLURM_NCPU'],
-        round(cfg['SLURM_MEM']/cfg['SLURM_NCPU']),
-        cfg['SLURM_TIME'],
-        cfg['SLURM_NJOBS_TOTAL'],
-        cfg['SLURM_NJOBS_CONCURRENT'],
-        EXTRA_FLAGS,
-        cfg['WCPROD_WORK_DIR'],
+
+    elif cfg['CLUSTER_TYPE'] == 'condor':
+        jt = datetime.strptime(cfg['JOB_TIME'], '%H:%M:%S')
+        total_seconds = jt.second + jt.minute * 60 + jt.hour * 3600
+        script_batch = TEMPLATE_condor % (os.path.join(cfg['WCPROD_WORK_DIR'],cfg['EXECUTABLE']),
+                                          cfg['JOB_LOG_DIR'],
+                                          cfg['JOB_LOG_DIR'],
+                                          cfg['JOB_LOG_DIR'],
+                                          cfg['WCPROD_WORK_DIR'],
+                                          cfg['JOB_PRIORITY'],
+                                          cfg['JOB_NCPU'],
+                                          round(cfg['JOB_MEM']/cfg['JOB_NCPU']),
+                                          cfg['JOB_DISK_SPACE'],
+                                          total_seconds,
+                                          cfg['NJOBS_TOTAL'],
+                                         )
+
+
+    script = TEMPLATE_job_script % (cfg['WCPROD_WORK_DIR'],
         cfg['WCPROD_DB_FILE'],
         cfg['WCPROD_PROJECT'],
         cfg['WCPROD_NPHOTONS'],
+        cfg['WCPROD_NSUBEVENTS'],
         cfg['WCPROD_NEVENTS'],
         os.path.join(cfg['WCPROD_STORAGE_ROOT'],cfg['WCPROD_PROJECT']),
         cfg['WCSIM_HOME'],
-        cfg['REBIN_DB_FILE'],
-        cfg['WC_RMAX'],
-        cfg['WC_ZMAX'],
-        cfg['REBIN_GAP_SPACE'],
-        cfg['REBIN_GAP_ANGLE'],
-        cfg['REBIN_N_BINS_PHI0'],
-        cfg['NUM_SHARDS'],
+        cfg['CLUSTER_NAME'],
         cfg['WCPROD_NLOOPS'],
         cfg['BIND_PATH'],
-        cfg['CONTAINER_WCPROD'],
+        cfg['CONTAINER'],
         cfg['BIND_PATH'],                         
-        cfg['CONTAINER_WCSIM'],
+        cfg['CONTAINER'],
         cfg['BIND_PATH'],
-        cfg['CONTAINER_WCSIM'],
+        cfg['CONTAINER'],
         cfg['BIND_PATH'],
-        cfg['CONTAINER_WCPROD'],
+        cfg['CONTAINER'],
         cfg['BIND_PATH'],
-        cfg['CONTAINER_WCSIM'],
-        cfg['BIND_PATH'],
-        cfg['CONTAINER_WCSIM'],
+        cfg['CONTAINER'],
         )
 
-    with open('run_voxel_slac.sh','w') as f:
-        f.write(script)
+    if cfg['CLUSTER_TYPE'] == 'slurm':
+        with open('run_voxel_slac.sh','w') as f:
+            f.write(script_batch)
+            f.write(script)
+
+    elif cfg['CLUSTER_TYPE'] == 'condor':
+        executable = os.path.join(cfg['WCPROD_WORK_DIR'],cfg['EXECUTABLE'])
+        with open('run_voxel_condor.sub','w') as f:
+            f.write(script_batch)
+        with open(executable,'w') as f:
+            f.write("#!/bin/bash\n")
+            f.write(script)
 
 if __name__ == '__main__':
     main()
