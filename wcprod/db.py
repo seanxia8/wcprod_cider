@@ -32,7 +32,7 @@ class wcprod_db:
             result = cur.fetchall()
             if len(result) < 1:
                 cmd  = "CREATE TABLE project "
-                cmd += " (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, rmin FLOAT, rmax FLOAT, zmin FLOAT, zmax FLOAT,"
+                cmd += " (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, dirbin BOOL, rmin FLOAT, rmax FLOAT, zmin FLOAT, zmax FLOAT,"
                 cmd += " gap_space FLOAT, gap_angle FLOAT, n_phi_start INT, num_config INT, num_tables INT, num_photons INT)"
                 cur.execute(cmd)
     
@@ -52,14 +52,14 @@ class wcprod_db:
             if not self.exist_table("project"):
                 raise TableNotFoundError("The 'project' table not found (this may not be the database for wcprod_db)")
             # - project exists in the project table
-            cmd = f"SELECT rmin, rmax, zmin, zmax, gap_space, gap_angle, n_phi_start, num_config, num_tables, num_photons FROM project WHERE name = '{project}'"
+            cmd = f"SELECT dirbin, rmin, rmax, zmin, zmax, gap_space, gap_angle, n_phi_start, num_config, num_tables, num_photons FROM project WHERE name = '{project}'"
             cur.execute(cmd)
             res = cur.fetchall()
             if len(res) < 1:
                 raise ProjectNotFoundError(f"Project '{project}' not found in the project table")
             if len(res) > 1:
                 raise ProjectIntegrityError(f"Found more than 1 entry with the name '{project}' in the project table")
-            rmin,rmax,zmin,zmax,gap_space,gap_angle,n_phi_start,num_config,num_tables,num_photons = res[0]
+            dirbin,rmin,rmax,zmin,zmax,gap_space,gap_angle,n_phi_start,num_config,num_tables,num_photons = res[0]
             # - geo table
             if not self.exist_table(f"geo_{project}"):
                 raise ProjectIntegrityError(f"Geometry table not found for the project '{project}'")
@@ -77,10 +77,9 @@ class wcprod_db:
             zero_ctr = cur.fetchall()[0][0]            
             if not zero_ctr == 0:
                 raise ProjectIntegrityError(f"Found unexpected geo_type values (must be 0 or 1)")
-            if not vox_id_ctr == num_config:
-                raise ProjectIntegrityError(f"Voxel ID counters ({vox_id_ctr} is inconsistent with the config count {num_config}")
-            if not (pos_id_ctr * dir_id_ctr) == num_config:
-                raise ProjectIntegrityError(f"Position and direction ID counters ({pos_id_ctr} and {dir_id_ctr}) are inconsistent with the config count {num_config}")
+            if not vox_id_ctr == num_config and not (pos_id_ctr * dir_id_ctr) == num_config and not (vox_id_ctr * dir_id_ctr) == num_config:
+                raise ProjectIntegrityError(f"None of the voxel ID counters ({vox_id_ctr}, position ID counters {pos_id_ctr}, "
+                                            f"and direction ID counters {dir_id_ctr} is inconsistent with the config count {num_config}")
             # - map table
             if not self.exist_table(f"map_{project}"):
                 raise ProjectIntegrityError(f"Config mapping table not found for the project '{project}'")
@@ -109,11 +108,11 @@ class wcprod_db:
                 cfg_min, cfg_max, pos_max, dir_max = cur.fetchall()[0]
                 if cfg_min < data_map[index,1] or data_map[index,2] < cfg_max:
                     raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has invalid config_id range {cfg_min}=>{cfg_max} (expected: {data_map[index,1:3]})")
-                if pos_id_ctr <= pos_max:
-                    raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected maximum pos_id value {pos_max} (should be < {pos_id_ctr})")
                 if dir_id_ctr <= dir_max:
                     raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected maximum dir_id value {dir_max} (should be < {dir_id_ctr})")
                 if n_phi_start == 0:
+                    if pos_id_ctr <= pos_max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected maximum pos_id value {pos_max} (should be < {pos_id_ctr})")
                     cmd = f"SELECT MIN(ABS(x)), MAX(ABS(x)), MIN(ABS(y)), MAX(ABS(y)), MIN(z), MAX(z), MIN(theta), MAX(theta), MIN(phi), MAX(phi) FROM cfg_{project}{index}"
                     cur.execute(cmd)
                     xmin, xmax, ymin, ymax, zmin2, zmax2, tmin, tmax, pmin, pmax = cur.fetchall()[0]
@@ -128,9 +127,12 @@ class wcprod_db:
                     if pmin < 0 or 360 < pmax:
                         raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected phi value range {pmin}=>{pmax} (expected 0=>360)")
                 else:
-                    cmd = f"SELECT MIN(r0), MAX(r0), MIN(r1), MAX(r1), MIN(phi0), MAX(phi0), MIN(phi1), MAX(phi1), MIN(z0), MAX(z0), MIN(z1), MAX(z1) FROM cfg_{project}{index}"
+                    if vox_id_ctr <= pos_max:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected maximum vox_id value {pos_max} (should be < {vox_id_ctr})")
+                    cmd = (f"SELECT MIN(r0), MAX(r0), MIN(r1), MAX(r1), MIN(phi0), MAX(phi0), MIN(phi1), MAX(phi1), MIN(z0), MAX(z0), MIN(z1), MAX(z1), "
+                           f"MIN(theta), MAX(theta), MIN(phi), MAX(phi) FROM cfg_{project}{index}")
                     cur.execute(cmd)
-                    r0min, r0max, r1min, r1max, phi0min, phi0max, phi1min, phi1max, z0min, z0max, z1min, z1max = cur.fetchall()[0]
+                    r0min, r0max, r1min, r1max, phi0min, phi0max, phi1min, phi1max, z0min, z0max, z1min, z1max, tmin, tmax, pmin, pmax = cur.fetchall()[0]
                     if r0min < rmin or rmax < r0max:
                         raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected r0 value range {r0min}=>{r0max} (expected {rmin}=>{rmax})")
                     if r1min < rmin or rmax < r1max:
@@ -143,7 +145,10 @@ class wcprod_db:
                         raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected z0 value range {z0min}=>{z0max} (expected {zmin}=>{zmax})")
                     if z1min < zmin or zmax < z1max:
                         raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected z1 value range {z1min}=>{z1max} (expected {zmin}=>{zmax})")
-                    
+                    if tmin < 0 or 180 < tmax:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected theta value range {tmin}=>{tmax} (expected 0=>180)")
+                    if pmin < 0 or 360 < pmax:
+                        raise ProjectIntegrityError(f"Configuration table cfg_{project}{index} has unexpected phi value range {pmin}=>{pmax} (expected 0=>360)")
                 
                 # - file table
                 cmd = f"SELECT MIN(config_id),MAX(config_id) FROM file_{project}{index}"
@@ -202,14 +207,15 @@ class wcprod_db:
 
             p=wcprod_project()
 
-            cur.execute(f"SELECT zmin,zmax,rmin,rmax,gap_space,gap_angle,n_phi_start,num_photons FROM project WHERE name='{project}' LIMIT 1")
+            cur.execute(f"SELECT dirbin,zmin,zmax,rmin,rmax,gap_space,gap_angle,n_phi_start,num_photons FROM project WHERE name='{project}' LIMIT 1")
             res=cur.fetchall()
             if len(res)<1:
                 return None
             res=res[0]
+            p._dir_bin = res[0]
             p._project = project
-            p._zmin, p._zmax, p._rmin, p._rmax = res[0:4]
-            p._gap_space, p._gap_angle, p._n_phi_start, p._num_photons = res[4:]
+            p._zmin, p._zmax, p._rmin, p._rmax = res[1:5]
+            p._gap_space, p._gap_angle, p._n_phi_start, p._num_photons = res[5:]
 
             p._positions  = self.list_positions(project)[:,0:3]
             p._directions = self.list_directions(project)[:,0:2]
@@ -219,8 +225,8 @@ class wcprod_db:
             if p._n_phi_start == 0:
                 p._configs = coordinates(p.positions,p.directions)
             else:
-                p._configs = volumes(p.voxels)
-
+                #p._configs = volumes(p.voxels,p.directions,p.dir_bin)
+                p._configs = volumes(p.voxels, p.directions, p.dir_bin)
             return p
     
 
@@ -244,18 +250,37 @@ class wcprod_db:
                 print('Project',project,'does not exist')
                 return None
             table_index = self.table_id(project,config_id)
-            cur.execute(f'SELECT config_id,x,y,z,theta,phi,pos_id,dir_id,file_ctr,photon_ctr FROM cfg_{project}{table_index} WHERE config_id={config_id}')
+            # SQL query to check if the value exists
+            query = "SELECT EXISTS(SELECT 1 FROM cfg_{project}{table_index} WHERE config_id={config_id} and my_column = 'x')"
+            # Execute the query
+            cursor.execute(query)
+            # Fetch the result
+            exists = cursor.fetchone()[0]
+            if exists:
+                cur.execute(f'SELECT config_id,x,y,z,theta,phi,pos_id,dir_id,file_ctr,photon_ctr FROM cfg_{project}{table_index} WHERE config_id={config_id}')
+            else:
+                cur.execute(f'SELECT config_id,r0,r1,phi0,phi1,z0,z1,theta,phi,pos_id,dir_id,file_ctr,photon_ctr FROM cfg_{project}{table_index} WHERE config_id={config_id}')
             res=cur.fetchall()
             if len(res)<1:
                 print('Project',project,'config_id',config_id,'does not exist')
                 return None
             res=res[0]
-            res=dict(config_id=res[0],
-                     x=res[1],y=res[2],z=res[3],
-                     theta=res[4],phi=res[5],
-                     pos_id=res[6],dir_id=res[7],
-                     file_ctr=res[8],
-                     photon_ctr=res[9],)
+            if exists:
+                res=dict(config_id=res[0],
+                         x=res[1],y=res[2],z=res[3],
+                         theta=res[4],phi=res[5],
+                         pos_id=res[6],dir_id=res[7],
+                         file_ctr=res[8],
+                         photon_ctr=res[9],)
+            else:
+                res=dict(config_id=res[0],
+                         r0=res[1],r1=res[2],
+                         phi0=res[3],phi1=res[4],
+                         z0=res[5], z1=res[6],
+                         theta=res[7],phi=res[8],
+                         pos_id=res[9],dir_id=res[10],
+                         file_ctr=res[11],
+                         photon_ctr=res[12],)
             return res
     
 
@@ -360,7 +385,8 @@ class wcprod_db:
         Returns
         -------
         dict
-            Contains config/table IDs, (x,y,z,theta,phi)-or-(r0,r1,phi0,phi1,z0,z1), and the number of files produced so far
+            Contains config/table IDs, (x,y,z,theta,phi)-or-(r0,r1,phi0,phi1,z0,z1)-or-(r0,r1,phi0,phi1,z0,z1,thetadir,phidir),
+            and the number of files produced so far
         """
         p = self.get_project(project)
         max_photons = p.num_photons
@@ -378,10 +404,8 @@ class wcprod_db:
                 table_id = res[0][0]
             if p._n_phi_start == 0:
                 cmd = f"SELECT config_id,x,y,z,theta,phi,file_ctr FROM cfg_{project}{table_id} WHERE photon_ctr < {max_photons}"
-        
             else:
-                cmd = f"SELECT config_id,r0,r1,phi0,phi1,z0,z1,file_ctr FROM cfg_{project}{table_id} WHERE photon_ctr < {max_photons}"
-
+                cmd = f"SELECT config_id,r0,r1,phi0,phi1,z0,z1,theta,phi,file_ctr FROM cfg_{project}{table_id} WHERE photon_ctr < {max_photons}"
                 
             if prioritize:
                 cmd += f" ORDER BY photon_ctr ASC"
@@ -402,7 +426,7 @@ class wcprod_db:
             else:
                 return dict(config_id=res[0],table_id=table_id,
                             r0=res[1],r1=res[2],phi0=res[3],phi1=res[4],z0=res[5],z1=res[6],
-                            file_ctr=res[7],
+                            theta=res[7], phi=res[8], file_ctr=res[9],
                             )
 
     def lock_table(self,project:str,table_id:int=None):
@@ -481,6 +505,8 @@ class wcprod_db:
         list
             The list of table IDs
         """
+        if self.table_count(project) == 1:
+            return [0]
         all_table_ids = np.linspace(0, self.table_count(project), self.table_count(project))
         portion = int(0.15*len(all_table_ids))
         if cluster.lower() == "s3df":
@@ -682,7 +708,7 @@ class wcprod_db:
             
         # create dataframes to create configuration tables.
         coords = p.configs
-        num_tables = int(np.ceil(len(coords) / max_entries_per_table))
+        num_tables = max(int(np.ceil(len(coords) / max_entries_per_table)), 1)
         entries = [int(len(coords)/num_tables)]*num_tables
         entries[-1] += (len(coords) - sum(entries))
         assert sum(entries) == len(coords)
@@ -695,8 +721,8 @@ class wcprod_db:
             
             # Register the project
             print('Registering project',project)
-            cmd = f"INSERT INTO project (name, rmin, rmax, zmin, zmax, gap_space, gap_angle, n_phi_start, num_config, num_tables, num_photons)"
-            cmd += f" VALUES ('{p.project}', {p.rmin}, {p.rmax}, {p.zmin}, {p.zmax}, {p.gap_space}, {p.gap_angle}, {p.n_phi_start}, {len(p.configs)}, {num_tables}, {p.num_photons})"
+            cmd = f"INSERT INTO project (name, dirbin, rmin, rmax, zmin, zmax, gap_space, gap_angle, n_phi_start, num_config, num_tables, num_photons)"
+            cmd += f" VALUES ('{p.project}', {p.dir_bin}, {p.rmin}, {p.rmax}, {p.zmin}, {p.zmax}, {p.gap_space}, {p.gap_angle}, {p.n_phi_start}, {len(p.configs)}, {num_tables}, {p.num_photons})"
             #print(cmd)
             cur.execute(cmd)
 
@@ -755,14 +781,16 @@ class wcprod_db:
                 else:
                     df = pd.DataFrame(dict(config_id=np.arange(start, end).astype(int),
                                            r0=coords[start:end, 0], r1=coords[start:end, 1],
-                                           phi0=coords[start:end, 2], phi1=coords[start:end,3],
-                                           z0=coords[start:end, 4], z1=coords[start:end,5],
-                                           pos_id=coords[start:end, 6].astype(int),
-                                           dir_id=np.zeros(shape=(end-start), dtype=int),
+                                           phi0=coords[start:end, 2], phi1=coords[start:end, 3],
+                                           z0=coords[start:end, 4], z1=coords[start:end, 5],
+                                           theta=coords[start:end, 6], phi=coords[start:end, 7],
+                                           pos_id=coords[start:end, 8].astype(int),
+                                           dir_id=coords[start:end, 9].astype(int),
                                            file_ctr=np.zeros(shape=(end - start), dtype=int),
                                            photon_ctr=np.zeros(shape=(end - start), dtype=int),
                                            )
                                       )
+
                 df.to_sql(cfg_tablename+str(table_index),self._conn, index=False)
                 cur.execute(f"ALTER TABLE {cfg_tablename}{table_index} ADD Timestamp DATETIME")
                 current_timestamp = datetime.datetime.now().isoformat(" ",timespec='seconds')

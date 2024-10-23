@@ -17,6 +17,7 @@ class wcprod_project:
         assert type(cfg) == dict
 
         self._project = str(cfg['project'])
+        self._dir_bin = bool(cfg['dirbin'])
         self._rmin    = float(cfg['rmin'])
         self._rmax    = float(cfg['rmax'])
         self._zmin    = float(cfg['zmin'])
@@ -26,13 +27,13 @@ class wcprod_project:
         self._n_phi_start = int(cfg.get('n_phi_start', 0))
         self._num_photons = int(cfg['num_photons'])        
         self._positions  = positions(self.zmin,self.zmax,self.rmin,self.rmax,self.gap_space)
-        self._directions = directions(self.gap_angle, self.n_phi_start)
+        self._directions = directions(self.gap_angle, self.dir_bin)
         
         if self._n_phi_start == 0:
             self._configs    = coordinates(self.positions,self.directions)
         else:
             self._voxels, self._positions = voxels(self.zmin,self.zmax,self.rmin,self.rmax,self.gap_space,self.n_phi_start)
-            self._configs = volumes(self.voxels)
+            self._configs = volumes(self.voxels, self.directions, self._dir_bin)
             
     def __str__(self):
         msg=f'''
@@ -40,6 +41,7 @@ class wcprod_project:
         Cylinder geometry
           R: {self.rmin} => {self.rmax}
           Z: {self.zmin} => {self.zmax}
+        Bin in Direction: {self.dir_bin}
         Gap space: {self.gap_space}
         Gap angle: {self.gap_angle}
         Starting n phi: {self.n_phi_start}
@@ -76,6 +78,8 @@ class wcprod_project:
     def configs(self): return self._configs
     @property
     def num_photons(self): return self._num_photons
+    @property
+    def dir_bin(self): return self._dir_bin
 
     def draw_dir(self):
         import plotly.graph_objects as go
@@ -109,6 +113,7 @@ class wcprod_project:
     def draw_vox_plane(self):
         import plotly.graph_objects as go
         import numpy as np
+
         vox = self.voxels[np.where(np.fabs(self.voxels[:,4])<50.)]
         x_coords = [ [vox[i,0]*np.cos(vox[i,2]*np.pi/180.), vox[i,1]*np.cos(vox[i,2]*np.pi/180.), vox[i,1]*np.cos(vox[i,3]*np.pi/180.), vox[i,0]*np.cos(vox[i,3]*np.pi/180.)] for i in range(len(vox))]
         y_coords = [ [vox[i,0]*np.sin(vox[i,2]*np.pi/180.), vox[i,1]*np.sin(vox[i,2]*np.pi/180.), vox[i,1]*np.sin(vox[i,3]*np.pi/180.), vox[i,0]*np.sin(vox[i,3]*np.pi/180.)] for i in range(len(vox))]
