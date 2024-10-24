@@ -35,7 +35,7 @@ class wcprod_db:
                 cmd += " (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE, dirbin BOOL, rmin FLOAT, rmax FLOAT, zmin FLOAT, zmax FLOAT,"
                 cmd += " gap_space FLOAT, gap_angle FLOAT, n_phi_start INT, num_config INT, num_tables INT, num_photons INT)"
                 cur.execute(cmd)
-    
+
     def check_integrity(self,project:str):
         """Test function for the database integrity
 
@@ -419,14 +419,14 @@ class wcprod_db:
             res = res[int(np.random.random()*len(res))]
 
             if p._n_phi_start == 0:                
-                return dict(config_id=res[0],table_id=table_id,
-                            x=res[1],y=res[2],z=res[3],theta=res[4],phi=res[5],
+                return dict(config_id=res[0],table_id=table_id,dirbin=p.dir_bin,
+                            x=res[1],y=res[2],z=res[3],theta=res[4],phi=res[5],gap_angle=p.gap_angle,
                             file_ctr=res[6],
                 )
             else:
-                return dict(config_id=res[0],table_id=table_id,
+                return dict(config_id=res[0],table_id=table_id,dirbin=p.dir_bin,
                             r0=res[1],r1=res[2],phi0=res[3],phi1=res[4],z0=res[5],z1=res[6],
-                            theta=res[7], phi=res[8], file_ctr=res[9],
+                            theta=res[7], phi=res[8], gap_angle=p.gap_angle,file_ctr=res[9],
                             )
 
     def lock_table(self,project:str,table_id:int=None):

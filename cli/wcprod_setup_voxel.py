@@ -51,6 +51,10 @@ TEMPLATE_G4='''/run/verbose                           1
 /mygen/z1_Vox                          %f mm
 /mygen/phi0_Vox                        %f
 /mygen/phi1_Vox                        %f
+/mygen/fixphidir                       %f
+/mygen/fixphisigma                     %f
+/mygen/fixthetadir                     %f
+/mygen/fixthetasigma                   %f
 /Tracking/fractionOpticalPhotonsToDraw 0
 /WCSimIO/RootFile                      %s
 /WCSimIO/SaveRooTracker                0
@@ -164,15 +168,22 @@ def main():
 	table_ids = db.get_table_ids(project, cluster)
 	for tid in table_ids:
 		db.unlock_table(project, tid)
+
 	cfg = db.get_random_config(project, prioritize=True, size=1000)
 	file_ctr = cfg['file_ctr']
 	config_id = cfg['config_id']
+	dirbin = cfg['dirbin']
 	r0 = cfg['r0']
 	r1 = cfg['r1']
 	z0 = cfg['z0']
 	z1 = cfg['z1']
 	phi0 = cfg['phi0']
 	phi1 = cfg['phi1']
+	gap_angle = cfg['gap_angle']
+	if dirbin:
+		phidir = cfg['phi']
+		thetadir = cfg['theta']
+
 
 	# Step 1: prepare/verify the storage space
 	unit_K=100
@@ -192,7 +203,7 @@ def main():
 
 	# Step 2: prepare G4 macro
 	out_file   = '%s/out_%s_%09d_%03d.root' % (storage_path,project,config_id,file_ctr)
-	contents = TEMPLATE_G4 % (nsubevents, nphotons, r0,r1,z0,z1,phi0,phi1,out_file,nevents)
+	contents = TEMPLATE_G4 % (nsubevents,nphotons,r0,r1,z0,z1,phi0,phi1,phidir,gap_angle,thetadir,gap_angle,out_file,nevents)
 	with open(f'{storage_path}/log.txt','a') as f:
 		f.write('\n\n'+contents+'\n\n')
 	with open(f'{storage_path}/g4.mac','w') as f:
