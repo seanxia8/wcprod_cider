@@ -27,3 +27,5 @@ SLURM_PARTITION: milano
 SLURM_PREEMPTABLE: True
 SLURM_NODELIST: ''
 WCSIM_HOME: /src/WCSim
+#put negative value to enable the random config
+CONFIG_ID:          -1

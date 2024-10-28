@@ -58,6 +58,7 @@ if [ ! -f setup_job.yaml ]; then
     WCSIM_HOME: %s
     WCSIM_ENV: /src/scripts/sourceme.sh
     Cluster: %s
+    CONFIG_ID: %d
     " > setup_job.yaml
 fi
 
@@ -124,7 +125,8 @@ def parse_config(cfg):
                 'JOB_LOG_DIR','JOB_TIME','JOB_MEM','JOB_DISK_SPACE', 'JOB_PRIORITY',
                 'SLURM_ACCOUNT','SLURM_PARTITION','SLURM_PREEMPTABLE','SLURM_NJOBS_CONCURRENT',
                 'JOB_NCPU','NJOBS_TOTAL',
-                'CONTAINER', 'WCSIM_HOME']
+                'CONTAINER', 'WCSIM_HOME',
+                'CONFIG_ID']
 
     for key in keywords:
         if not key in cfg.keys():
@@ -214,6 +216,7 @@ def main():
         os.path.join(cfg['WCPROD_STORAGE_ROOT'],cfg['WCPROD_PROJECT']),
         cfg['WCSIM_HOME'],
         cfg['CLUSTER_NAME'],
+        cfg['CONFIG_ID'],
         cfg['WCPROD_NLOOPS'],
         cfg['BIND_PATH'],
         cfg['CONTAINER'],

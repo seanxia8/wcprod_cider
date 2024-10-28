@@ -157,6 +157,7 @@ def main():
 	#rebin_n_bins_phi0 = cfg['Rebin_n_bins_phi0']
 	#num_shards = cfg['Num_shards']
 	cluster = cfg['Cluster']
+	config_id = cfg['CONFID_ID']
 
 	db=wcprod_db(dbfile)
 	if not db.exist_project(project):
@@ -169,9 +170,14 @@ def main():
 	for tid in table_ids:
 		db.unlock_table(project, tid)
 
-	cfg = db.get_random_config(project, prioritize=True, size=1000)
+	# get a random configuration
+	if config_id < 0:
+		cfg = db.get_random_config(project, prioritize=True, size=1000)
+		config_id = cfg['config_id']
+	else:
+		cfg = db.get_config(project, config_id)
+	assert config_id == cfg['config_id'], f"config_id mismatch: {config_id} != {cfg['config_id']}"
 	file_ctr = cfg['file_ctr']
-	config_id = cfg['config_id']
 	dirbin = cfg['dirbin']
 	r0 = cfg['r0']
 	r1 = cfg['r1']

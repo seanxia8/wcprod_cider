@@ -265,20 +265,23 @@ class wcprod_db:
                 print('Project',project,'config_id',config_id,'does not exist')
                 return None
             res=res[0]
+            p = self.get_project(project)
             if exists:
-                res=dict(config_id=res[0],
+                res=dict(config_id=res[0],dirbin=p.dir_bin,
                          x=res[1],y=res[2],z=res[3],
                          theta=res[4],phi=res[5],
                          pos_id=res[6],dir_id=res[7],
+                         gap_angle=p.gap_angle,
                          file_ctr=res[8],
                          photon_ctr=res[9],)
             else:
-                res=dict(config_id=res[0],
+                res=dict(config_id=res[0],dirbin=p.dir_bin,
                          r0=res[1],r1=res[2],
                          phi0=res[3],phi1=res[4],
                          z0=res[5], z1=res[6],
                          theta=res[7],phi=res[8],
                          pos_id=res[9],dir_id=res[10],
+                         gap_angle=p.gap_angle,
                          file_ctr=res[11],
                          photon_ctr=res[12],)
             return res
