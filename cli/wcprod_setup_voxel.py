@@ -157,7 +157,7 @@ def main():
 	#rebin_n_bins_phi0 = cfg['Rebin_n_bins_phi0']
 	#num_shards = cfg['Num_shards']
 	cluster = cfg['Cluster']
-	config_id = cfg['CONFID_ID']
+	config_id = cfg['CONFIG_ID']
 
 	db=wcprod_db(dbfile)
 	if not db.exist_project(project):
