@@ -253,7 +253,7 @@ class wcprod_db:
             # SQL query to check if the value exists
             query = "SELECT EXISTS(SELECT 1 FROM cfg_{project}{table_index} WHERE config_id={config_id} and my_column = 'x')"
             # Execute the query
-            cursor.execute(query)
+            cur.execute(query)
             # Fetch the result
             exists = cursor.fetchone()[0]
             if exists:
