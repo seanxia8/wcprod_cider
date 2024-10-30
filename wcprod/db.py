@@ -453,7 +453,7 @@ class wcprod_db:
                 cur.execute(cmd)
 
             else:
-                cmd = f"UPDATE map_{project} SET lock = 1 WHERE table_id = {int(table_id)}"
+                cmd = f"UPDATE map_{project} SET lock = 1 WHERE table_id = {int(table_id)} AND lock < 1"
                 cur.execute(cmd)
 
             # finish transaction
