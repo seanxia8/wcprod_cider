@@ -173,7 +173,7 @@ def main():
 		sys.exit(ERROR_PROJECT_NOT_FOUND)
 
 	table_ids = db.get_table_ids(project, cluster)
-	for tid in db.table_count(project):
+	for tid in range(db.table_count(project)):
 		if tid not in range(table_ids):
 			db.lock_table(project, tid)
 
