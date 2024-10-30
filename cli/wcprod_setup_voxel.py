@@ -84,11 +84,19 @@ data:
   output_file: %s
   n_photons: %d
   nevents_per_file: %d
+  r0: %d
+  r1: %d
+  z0: %d
+  z1: %d
+  phi0: %d
+  phi1: %d
+  fixphidir: %d
+  fixthetadir: %d
   root_branches:
       event_info:
         - [pid, np.int32, 1]
         - [position, np.float32, 3]
-        - [direction, np.float32, 3]
+        - [direction, np.float32, 2]
         - [energy, np.float32, 1]
       digi_hits:
         - [pmt, np.int32, 10184] # pmt id
@@ -247,7 +255,7 @@ def main():
 		f.write(script_wcsim)
 
 	out_raw_h5 = '%s/raw_%s_%09d_%03d.h5' % (storage_path,project,config_id,file_ctr)
-	script_convert = TEMPLATE_CONVERT % (out_file, out_raw_h5, nphotons, nevents)
+	script_convert = TEMPLATE_CONVERT % (out_file, out_raw_h5, nphotons*nsubevents, nevents, r0, r1, z0, z1, phi0, phi1, phidir, thetadir)
 	with open(f'{storage_path}/convert.yaml', 'w') as f:
 		f.write(script_convert)
 

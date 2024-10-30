@@ -250,12 +250,11 @@ class wcprod_db:
                 print('Project',project,'does not exist')
                 return None
             table_index = self.table_id(project,config_id)
-            # SQL query to check if the value exists
-            query = "SELECT EXISTS(SELECT 1 FROM cfg_{project}{table_index} WHERE config_id={config_id} and my_column = 'x')"
-            # Execute the query
-            cur.execute(query)
+            cur.execute(f"PRAGMA table_info(cfg_{project}{table_index})")
+            columns = [row[1] for row in cur.fetchall()]
+            exists = 'x' in columns and 'y' in columns and 'z' in columns
             # Fetch the result
-            exists = cursor.fetchone()[0]
+            #exists = cur.fetchone()[0]
             if exists:
                 cur.execute(f'SELECT config_id,x,y,z,theta,phi,pos_id,dir_id,file_ctr,photon_ctr FROM cfg_{project}{table_index} WHERE config_id={config_id}')
             else:
