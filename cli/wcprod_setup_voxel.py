@@ -174,7 +174,7 @@ def main():
 
 	table_ids = db.get_table_ids(project, cluster)
 	for tid in range(db.table_count(project)):
-		if tid not in range(table_ids):
+		if tid not in table_ids:
 			db.lock_table(project, tid)
 
 	# get a random configuration
