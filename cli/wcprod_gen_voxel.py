@@ -46,7 +46,7 @@ cd $WORKDIR
 
 # Generate a configuration file
 
-if [ ! -f setup_job.yaml ]; then
+if [ ! -f setup_job_%d.yaml ]; then
     echo "
     DBFile:   %s
     Project:  %s
@@ -59,7 +59,7 @@ if [ ! -f setup_job.yaml ]; then
     WCSIM_ENV: /src/scripts/sourceme.sh
     Cluster: %s
     CONFIG_ID: %d
-    " > setup_job.yaml
+    " > setup_job_%d.yaml
 fi
 
 # Execute N times
@@ -208,6 +208,7 @@ def main():
 
 
     script = TEMPLATE_job_script % (cfg['WCPROD_WORK_DIR'],
+        cfg['CONFIG_ID'],
         cfg['WCPROD_DB_FILE'],
         cfg['WCPROD_PROJECT'],
         cfg['WCPROD_NPHOTONS'],
@@ -216,6 +217,7 @@ def main():
         os.path.join(cfg['WCPROD_STORAGE_ROOT'],cfg['WCPROD_PROJECT']),
         cfg['WCSIM_HOME'],
         cfg['CLUSTER_NAME'],
+        cfg['CONFIG_ID'],
         cfg['CONFIG_ID'],
         cfg['WCPROD_NLOOPS'],
         cfg['BIND_PATH'],
