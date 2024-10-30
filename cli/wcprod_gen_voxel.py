@@ -68,7 +68,7 @@ do
 
  echo
  echo "Starting: run counter $i"
- storage_path=$(singularity exec %s %s bash -c "wcprod_setup_voxel.py setup_job.yaml") 2>&1
+ storage_path=$(singularity exec %s %s bash -c "wcprod_setup_voxel.py setup_job_%d.yaml") 2>&1
  
  cd ${storage_path}
  chmod +x ./*
@@ -220,6 +220,7 @@ def main():
         cfg['CONFIG_ID'],
         cfg['CONFIG_ID'],
         cfg['WCPROD_NLOOPS'],
+        cfg['CONFIG_ID'],
         cfg['BIND_PATH'],
         cfg['CONTAINER'],
         cfg['BIND_PATH'],                         
