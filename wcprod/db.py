@@ -509,7 +509,7 @@ class wcprod_db:
         """
         if self.table_count(project) == 1:
             return [0]
-        all_table_ids = np.linspace(0, self.table_count(project), self.table_count(project))
+        all_table_ids = np.linspace(0, self.table_count(project)-1, self.table_count(project))
         portion = int(0.15*len(all_table_ids))
         if cluster.lower() == "s3df":
             return all_table_ids[5*portion:]

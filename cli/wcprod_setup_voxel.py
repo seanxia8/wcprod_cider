@@ -172,9 +172,12 @@ def main():
 		print(f"ERROR: project '{project}' not found in the database {dbfile}.")
 		sys.exit(ERROR_PROJECT_NOT_FOUND)
 
+	#db.unlock_table(project)
 	table_ids = db.get_table_ids(project, cluster)
+	print(f"Using table IDs: {table_ids} for cluster {cluster}.")
 	for tid in range(db.table_count(project)):
 		if tid not in table_ids:
+			print(f"Locking table id: {tid}")
 			db.lock_table(project, tid)
 
 	# get a random configuration
