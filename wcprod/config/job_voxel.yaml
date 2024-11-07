@@ -27,6 +27,7 @@ SLURM_PARTITION: milano
 SLURM_PREEMPTABLE: True
 SLURM_NODELIST: ''
 WCSIM_HOME: /src/WCSim
+CDS_FILE:            /sdf/home/j/junjie/sdf-data/WCTE/CDS/Arm_for_Simulation_ASCII_V2.stl
 #put negative value to enable the random config
 CONFIG_ID:          -1
 #unlock which group (s3df, cern, idark, computecanada, or none) to produce more data, if None then no unlock

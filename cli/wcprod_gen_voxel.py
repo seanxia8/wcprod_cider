@@ -57,6 +57,7 @@ if [ ! -f setup_job_%d.yaml ]; then
     ROOT_SETUP: /src/root/install/bin/thisroot.sh
     WCSIM_HOME: %s
     WCSIM_ENV: /src/scripts/sourceme.sh
+    CDS_FILE: %s
     Cluster: %s
     CONFIG_ID: %d
     UNLOCK_TABLE: %s
@@ -126,7 +127,7 @@ def parse_config(cfg):
                 'JOB_LOG_DIR','JOB_TIME','JOB_MEM','JOB_DISK_SPACE', 'JOB_PRIORITY',
                 'SLURM_ACCOUNT','SLURM_PARTITION','SLURM_PREEMPTABLE','SLURM_NJOBS_CONCURRENT',
                 'JOB_NCPU','NJOBS_TOTAL',
-                'CONTAINER', 'WCSIM_HOME',
+                'CONTAINER', 'WCSIM_HOME', 'CDS_FILE',
                 'CONFIG_ID']
 
     for key in keywords:
@@ -217,6 +218,7 @@ def main():
         cfg['WCPROD_NEVENTS'],
         os.path.join(cfg['WCPROD_STORAGE_ROOT'],cfg['WCPROD_PROJECT']),
         cfg['WCSIM_HOME'],
+        cfg['CDS_FILE'],
         cfg['CLUSTER_NAME'],
         cfg['CONFIG_ID'],
         cfg['UNLOCK_TABLE'],

@@ -26,8 +26,9 @@ TEMPLATE_G4='''/run/verbose                           1
 /WCSim/WCgeom                          nuPRISMBeamTest_16cShort_mPMT
 /WCSim/PMT/ReplicaPlacement            false
 /WCSim/Geometry/RotateBarrelHalfTower  true
+/WCSim/Geometry/SetCDSFile             %s
 /WCSim/PMT/PositionVariation           0 mm
-/WCSim/PMT/PositionFile                data/mPMT_Position_WCTE.txt
+/WCSim/PMT/PositionFile                data/mPMT_Position_WCTE_CDS.txt
 /WCSim/mPMT/PMTtype_inner              PMT3inchR14374_WCTE
 /WCSim/Construct
 /WCSim/PMTQEMethod                     DoNotApplyQE
@@ -73,6 +74,10 @@ phi0: %f
 phi1: %f
 z0: %f
 z1: %f
+phidir0: %f
+phidir1: %f
+thdir0: %f
+thdir1: %f
 criterion: -0.1
 wrapup_file: %s
 '''
@@ -157,6 +162,7 @@ def main():
 	root_setup   = cfg['ROOT_SETUP']
 	wcsim_home   = cfg['WCSIM_HOME']
 	wcsim_env    = cfg['WCSIM_ENV']
+	cds_file     = cfg['CDS_FILE']
 	#rebin_dbfile = cfg['Rebin_DBfile']
 	#rmax = cfg['WC_rmax']
 	#zmax = cfg['WC_zmax']
@@ -205,6 +211,9 @@ def main():
 	if dirbin:
 		phidir = cfg['phi']
 		thetadir = cfg['theta']
+	else:
+		phidir = -999
+		thetadir = -999
 
 
 	# Step 1: prepare/verify the storage space
@@ -225,7 +234,7 @@ def main():
 
 	# Step 2: prepare G4 macro
 	out_file   = '%s/out_%s_%09d_%03d.root' % (storage_path,project,config_id,file_ctr)
-	contents = TEMPLATE_G4 % (nsubevents,nphotons,r0,r1,z0,z1,phi0,phi1,phidir,gap_angle,thetadir,gap_angle,out_file,nevents)
+	contents = TEMPLATE_G4 % (cds_file,nsubevents,nphotons,r0,r1,z0,z1,phi0,phi1,phidir,gap_angle,thetadir,gap_angle,out_file,nevents)
 	with open(f'{storage_path}/log.txt','a') as f:
 		f.write('\n\n'+contents+'\n\n')
 	with open(f'{storage_path}/g4.mac','w') as f:
@@ -248,7 +257,21 @@ def main():
 
 	# Step 4: prepare the check script for wcsim file
 	cmacro_name = 'uniform_check'
-	contents = TEMPLATE_CHECK_CMACRO % (r0,r1,phi0,phi1,z0,z1,f'{storage_path}/{wrapup_file}')
+	if phidir >= 0. and phidir <= 360.:
+		phistart = phidir - gap_angle
+		phiend = phidir + gap_angle
+	else:
+		phistart = 0.
+		phiend = 360.
+
+	if thetadir >= 0. and thetadir <= 180.:
+		thetastart = thetadir - gap_angle
+		thetaend = thetadir + gap_angle
+	else:
+		thetastart = 0.
+		thetaend = 180.
+
+	contents = TEMPLATE_CHECK_CMACRO % (r0,r1,phi0,phi1,z0,z1,phistart,phiend,thetastart,thetaend,f'{storage_path}/{wrapup_file}')
 	with open(f'{storage_path}/log.txt','a') as f:
 		f.write('\n\n'+contents+'\n\n')
 	with open('%s/%s.yaml' % (storage_path, cmacro_name),'w') as f:
