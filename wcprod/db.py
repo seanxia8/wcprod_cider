@@ -510,19 +510,15 @@ class wcprod_db:
         if self.table_count(project) == 1:
             return [0]
         all_table_ids = np.linspace(0, self.table_count(project)-1, self.table_count(project))
-        portion = int(0.15*len(all_table_ids))
+        portion = int(0.25*len(all_table_ids))
         if cluster.lower() == "s3df":
-            return all_table_ids[5*portion:]
+            return all_table_ids[3*portion:]
         elif cluster.lower() == "cern":
             return all_table_ids[:portion]
-        elif cluster.lower() == "sukap":
-            return all_table_ids[portion:2*portion]
-        elif cluster.lower() == "grid":
-            return all_table_ids[2*portion:3*portion]
         elif cluster.lower() == "idark":
-            return all_table_ids[3*portion:4*portion]
+            return all_table_ids[portion:2*portion]
         elif cluster.lower() == "beluga":
-            return all_table_ids[4*portion:5*portion]
+            return all_table_ids[2*portion:3*portion]
         else:
             raise ValueError(f"Invalid cluster name: {cluster}")
 

@@ -59,6 +59,7 @@ if [ ! -f setup_job_%d.yaml ]; then
     WCSIM_ENV: /src/scripts/sourceme.sh
     Cluster: %s
     CONFIG_ID: %d
+    UNLOCK_TABLE: %s
     " > setup_job_%d.yaml
 fi
 
@@ -218,6 +219,7 @@ def main():
         cfg['WCSIM_HOME'],
         cfg['CLUSTER_NAME'],
         cfg['CONFIG_ID'],
+        cfg['UNLOCK_TABLE'],
         cfg['CONFIG_ID'],
         cfg['WCPROD_NLOOPS'],
         cfg['BIND_PATH'],

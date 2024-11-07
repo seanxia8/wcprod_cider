@@ -1,14 +1,14 @@
-#specify your cluster type, e.g. slurm, condor, pjsub, dirac, etc.
+#specify your cluster type, e.g. slurm, condor, dirac, etc.
 CLUSTER_TYPE:        slurm
-#specify your cluster name, e.g. s3df, cern, sukap, grid, etc.
+#specify your cluster name, e.g. s3df, cern, idark, grid, beluga, etc.
 CLUSTER_NAME:        s3df
 BIND_PATH:           /sdf
 EXECUTABLE:          test.sh
-CONTAINER:           /sdf/home/j/junjie/sdf-data/sif/cider-dataprod_24.09.25.sif
-WCPROD_DB_FILE:      /sdf/home/j/junjie/SIREN/WCProd/wcprod_cider/example_wcte_vox_40000.db
-WCPROD_PROJECT:      example_wcte_vox_40000
-WCPROD_NEVENTS:      40000
-WCPROD_NSUBEVENTS:   1
+CONTAINER:           /sdf/home/j/junjie/sdf-data/sif/cider-dataprod_24.10.30.sif
+WCPROD_DB_FILE:      /sdf/home/j/junjie/SIREN/WCProd/wcprod_cider/test_wcte_posdir_500000.db
+WCPROD_PROJECT:      test_wcte_posdir_50000
+WCPROD_NEVENTS:      10
+WCPROD_NSUBEVENTS:   50000
 WCPROD_NPHOTONS:     1
 WCPROD_NLOOPS:       1
 WCPROD_STORAGE_ROOT: /sdf/home/j/junjie/sdf-data/voxel/playground/test_sub
@@ -29,3 +29,5 @@ SLURM_NODELIST: ''
 WCSIM_HOME: /src/WCSim
 #put negative value to enable the random config
 CONFIG_ID:          -1
+#unlock which group (s3df, cern, idark, beluga, or none) to produce more data, if None then no unlock
+UNLOCK_TABLE:       idark

@@ -166,15 +166,21 @@ def main():
 	#num_shards = cfg['Num_shards']
 	cluster = cfg['Cluster']
 	config_id = cfg['CONFIG_ID']
+	unlock_table = cfg.get('UNLOCK_TABLE', None)
 
 	db=wcprod_db(dbfile)
 	if not db.exist_project(project):
 		print(f"ERROR: project '{project}' not found in the database {dbfile}.")
 		sys.exit(ERROR_PROJECT_NOT_FOUND)
 
-	#db.unlock_table(project)
-	table_ids = db.get_table_ids(project, cluster)
-	print(f"Using table IDs: {table_ids} for cluster {cluster}.")
+	db.unlock_table(project)
+	if unlock_table is None:
+		table_ids = db.get_table_ids(project, cluster)
+		print(f"Using table IDs: {table_ids} for group {cluster}.")
+	else:
+		table_ids = db.get_table_ids(project, unlock_table)
+		print(f"Using table IDs: {table_ids} for group {unlock_table}.")
+
 	for tid in range(db.table_count(project)):
 		if tid not in table_ids:
 			print(f"Locking table id: {tid}")
