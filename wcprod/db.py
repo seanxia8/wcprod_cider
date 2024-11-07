@@ -517,7 +517,7 @@ class wcprod_db:
             return all_table_ids[:portion]
         elif cluster.lower() == "idark":
             return all_table_ids[portion:2*portion]
-        elif cluster.lower() == "beluga":
+        elif cluster.lower() == "computecanada":
             return all_table_ids[2*portion:3*portion]
         else:
             raise ValueError(f"Invalid cluster name: {cluster}")

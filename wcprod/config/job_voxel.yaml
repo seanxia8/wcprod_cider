@@ -1,6 +1,6 @@
 #specify your cluster type, e.g. slurm, condor, dirac, etc.
 CLUSTER_TYPE:        slurm
-#specify your cluster name, e.g. s3df, cern, idark, grid, beluga, etc.
+#specify your cluster name, e.g. s3df, cern, idark, computecanada, etc.
 CLUSTER_NAME:        s3df
 BIND_PATH:           /sdf
 EXECUTABLE:          test.sh
@@ -29,5 +29,5 @@ SLURM_NODELIST: ''
 WCSIM_HOME: /src/WCSim
 #put negative value to enable the random config
 CONFIG_ID:          -1
-#unlock which group (s3df, cern, idark, beluga, or none) to produce more data, if None then no unlock
+#unlock which group (s3df, cern, idark, computecanada, or none) to produce more data, if None then no unlock
 UNLOCK_TABLE:       idark
