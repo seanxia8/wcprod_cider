@@ -182,14 +182,14 @@ def main():
 	db.unlock_table(project)
 	if unlock_table is None or unlock_table.lower() == 'none':
 		table_ids = db.get_table_ids(project, cluster)
-		print(f"Using table IDs: {table_ids} for group {cluster}.")
+		#print(f"Using table IDs: {table_ids} for group {cluster}.")
 	else:
 		table_ids = db.get_table_ids(project, unlock_table)
-		print(f"Using table IDs: {table_ids} for group {unlock_table}.")
+		#print(f"Using table IDs: {table_ids} for group {unlock_table}.")
 
 	for tid in range(db.table_count(project)):
 		if tid not in table_ids:
-			print(f"Locking table id: {tid}")
+			#print(f"Locking table id: {tid}")
 			db.lock_table(project, tid)
 
 	# get a random configuration
