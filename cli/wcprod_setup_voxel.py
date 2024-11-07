@@ -174,7 +174,7 @@ def main():
 		sys.exit(ERROR_PROJECT_NOT_FOUND)
 
 	db.unlock_table(project)
-	if unlock_table is None:
+	if unlock_table is None or unlock_table.lower() == 'none':
 		table_ids = db.get_table_ids(project, cluster)
 		print(f"Using table IDs: {table_ids} for group {cluster}.")
 	else:
